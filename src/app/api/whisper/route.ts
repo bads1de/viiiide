@@ -27,7 +27,8 @@ export async function POST(request: Request) {
 
         // 1. パス確認
         const inputVideo = path.join(process.cwd(), "public", videoPath);
-        if (!existsSync(inputVideo)) throw new Error("Video not found");
+        if (!existsSync(inputVideo))
+          throw new Error(`Video not found at ${inputVideo}`);
 
         if (!existsSync(WHISPER_BIN))
           throw new Error("Whisper binary missing. Please re-install.");
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
         sendUpdate("extracting", "音声を抽出中...", 10);
         const tempDir = path.join(process.cwd(), "temp");
         if (!existsSync(tempDir)) mkdirSync(tempDir);
-        const tempWav = path.join(tempDir, `temp_${Date.now()}.wav`);
+        const uniqueId = Date.now();
+        const tempWav = path.join(tempDir, `temp_${uniqueId}.wav`);
 
         try {
           execSync(
@@ -49,14 +51,18 @@ export async function POST(request: Request) {
           throw new Error("FFmpeg加工に失敗しました");
         }
 
-        // 3. Whisper.cpp 直接実行
-        sendUpdate("transcribing", "AIで解析中 (Whisper.cpp)...", 30);
+        // 3. Whisper.cpp 直接実行 (Vulkan GPU)
+        sendUpdate("transcribing", "AIで解析中 (Whisper.cpp GPU)...", 30);
 
-        // whisper.cpp のコマンドライン引数
-        // -m: モデル, -f: 入力, -oj: JSON出力, -ml: word-level timestamps, -l: 言語
-        const cmd = `"${WHISPER_BIN}" -m "${WHISPER_MODEL_PATH}" -f "${tempWav}" -l ${WHISPER_LANG} -oj`;
+        // 出力ファイルを明示的に指定
+        const outputBase = path.join(tempDir, `result_${uniqueId}`);
+        // -ojf: Full JSON (word-level tokens)
+        // -ml 1: Max length 1 (word-level segments)
+        // -sow: Split on word
+        const cmd = `"${WHISPER_BIN}" -m "${WHISPER_MODEL_PATH}" -f "${tempWav}" -l ${WHISPER_LANG} -ojf -ml 1 -sow -of "${outputBase}"`;
 
         try {
+          // GPUはVulkan版バイナリなら自動で使われます
           execSync(cmd, { stdio: "inherit" });
         } catch (e: any) {
           console.error("Whisper error:", e);
@@ -64,8 +70,7 @@ export async function POST(request: Request) {
         }
 
         // 4. JSON 結果の読み込み
-        // whisper.cpp は "audio.wav.json" という名前で出力する
-        const outputJson = `${tempWav}.json`;
+        const outputJson = `${outputBase}.json`;
         if (!existsSync(outputJson)) {
           throw new Error("解析結果ファイルが見つかりません");
         }
@@ -73,30 +78,21 @@ export async function POST(request: Request) {
         sendUpdate("processing", "字幕データを最適化中...", 80);
         const rawResult = JSON.parse(readFileSync(outputJson, "utf-8"));
 
-        // whisper.cpp の JSON 形式から Remotion 形式に変換
-        // rawResult.transcription = [{ text, offsets: { from, to }, tokens: [...] }]
-        // ターボモデルの場合、tokens から word level 情報を抽出
+        // Whisper.cpp の JSON 形式を Remotion 形式に変換
+        // -ml 1 と -ojf を併用しているため、transcription segments がほぼ単語単位になっています
+        const captions = rawResult.transcription
+          .map((seg: any) => {
+            // 特殊トークン以外を採用
+            const text = seg.text.trim();
+            if (!text || text.startsWith("[")) return null;
 
-        const captions = rawResult.transcription.flatMap((seg: any) => {
-          // 単語レベルのデータがある場合 (tokens)
-          if (seg.tokens && seg.tokens.length > 0) {
-            return seg.tokens
-              .filter((t: any) => t.text.trim())
-              .map((t: any) => ({
-                text: t.text.trim(),
-                startInMs: t.offsets.from,
-                endInMs: t.offsets.to,
-              }));
-          }
-          // セグメントレベルの場合
-          return [
-            {
-              text: seg.text.trim(),
+            return {
+              text: text,
               startInMs: seg.offsets.from,
               endInMs: seg.offsets.to,
-            },
-          ];
-        });
+            };
+          })
+          .filter(Boolean);
 
         // 5. 保存
         const finalJsonPath = inputVideo.replace(/\.[^.]+$/, ".json");

@@ -1,7 +1,8 @@
 "use client";
 
-import { Player } from "@remotion/player";
+import { Player, PlayerRef } from "@remotion/player";
 import { MyComposition } from "@/remotion/MyComposition";
+import { extractFrames } from "@remotion/webcodecs";
 import {
   Type,
   Wand2,
@@ -14,21 +15,120 @@ import {
   Upload,
   Film,
   X,
+  Play,
+  Pause
 } from "lucide-react";
-import { useState, useCallback, DragEvent } from "react";
+import { useState, useCallback, DragEvent, useRef, useEffect } from "react";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState("subtitle");
   const [videoPath, setVideoPath] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
+  const [frames, setFrames] = useState<string[]>([]);
+  const [duration, setDuration] = useState<number>(0);
+  const [currentFrame, setCurrentFrame] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingState, setProcessingState] = useState<{
     status: "idle" | "processing" | "done" | "error";
     message: string;
     progress: number;
   }>({ status: "idle", message: "", progress: 0 });
+
+  const playerRef = useRef<PlayerRef>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const FPS = 30;
+  const PIXELS_PER_SECOND = 120;
+
+  // タイムラインクリック時のシーク処理
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!playerRef.current || !timelineRef.current) return;
+    
+    const rect = timelineRef.current.getBoundingClientRect();
+    const scrollLeft = timelineRef.current.parentElement?.scrollLeft || 0;
+    const clickX = e.clientX - rect.left; // コンテナ内でのX座標
+    
+    // スクロールされている場合、表示領域外のクリック位置を考慮する必要があるが、
+    // ここではクリックイベントがtimelineRef（スクロールされる中身）上で発生することを想定
+    // しかし、実際にはクリックイベントは親のscrollable divで拾う方が簡単かもしれない。
+    // 今回は timelineRef (widthが固定された内部div) にonClickをつける。
+    
+    const timeInSeconds = clickX / PIXELS_PER_SECOND;
+    const frame = Math.round(timeInSeconds * FPS);
+    
+    playerRef.current.seekTo(frame);
+    setCurrentFrame(frame);
+  };
+
+  const togglePlay = () => {
+    if (!playerRef.current) return;
+    if (isPlaying) {
+      playerRef.current.pause();
+    } else {
+      playerRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  // フレーム抽出
+  const extractVideoFrames = async (file: File) => {
+    setIsExtracting(true);
+    setFrames([]);
+    const url = URL.createObjectURL(file);
+    
+    // 仮の動画要素を作成して長さを取得
+    const video = document.createElement("video");
+    video.src = url;
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve(null);
+    });
+    const duration = video.duration;
+    setDuration(duration);
+    
+    // 1秒ごとにフレームを抽出
+    const timestamps = Array.from(
+      { length: Math.ceil(duration) },
+      (_, i) => i
+    );
+
+    const extractedFrames: string[] = [];
+
+    try {
+      await extractFrames({
+        src: url,
+        timestampsInSeconds: timestamps,
+        onFrame: async (frame) => {
+          const canvas = document.createElement("canvas");
+          canvas.width = frame.codedWidth;
+          canvas.height = frame.codedHeight;
+          const ctx = canvas.getContext("2d");
+          
+          if (ctx) {
+            ctx.drawImage(frame, 0, 0);
+            const imageUrl = canvas.toDataURL("image/jpeg", 0.5);
+            extractedFrames.push(imageUrl);
+            // リアルタイムで更新したい場合はここでsetFramesしてもよいが、
+            // レンダリング回数を減らすため、ある程度まとめて、あるいは最後にセットする戦略もあり。
+            // ここではユーザー体験向上のため、逐次追加していく（ただしパフォーマンス注意）
+             setFrames((prev) => {
+                // 順番が保証されない可能性があるため、タイムスタンプ順に並べるロジックが必要だが、
+                // extractFramesは通常順番通りに来る。ここでは単純に追加。
+                return [...prev, imageUrl];
+             });
+          }
+          frame.close();
+        },
+      });
+    } catch (e) {
+      console.error("Frame extraction error:", e);
+    } finally {
+      setIsExtracting(false);
+      URL.revokeObjectURL(url);
+    }
+  };
 
   // ドラッグ＆ドロップハンドラ
   const handleDragEnter = useCallback((e: DragEvent) => {
@@ -62,6 +162,7 @@ export default function Home() {
       return;
     }
 
+    extractVideoFrames(file);
     await uploadFile(file);
   }, []);
 
@@ -72,6 +173,7 @@ export default function Home() {
       if (!files || files.length === 0) return;
 
       const file = files[0];
+      extractVideoFrames(file);
       await uploadFile(file);
     },
     []
@@ -112,6 +214,10 @@ export default function Home() {
   const handleRemoveVideo = () => {
     setVideoPath(null);
     setVideoFileName(null);
+    setFrames([]);
+    setCurrentFrame(0);
+    setDuration(0);
+    setIsPlaying(false);
     setProcessingState({ status: "idle", message: "", progress: 0 });
   };
 
@@ -418,14 +524,18 @@ export default function Home() {
               style={{ width: "360px", height: "640px" }}
             >
               <Player
+                ref={playerRef}
                 component={MyComposition}
                 inputProps={{ videoSrc: videoPath }}
-                durationInFrames={300}
+                durationInFrames={Math.max(1, Math.ceil(duration * FPS))}
                 compositionWidth={1080}
                 compositionHeight={1920}
-                fps={30}
+                fps={FPS}
                 style={{ width: "100%", height: "100%" }}
                 controls
+                onFrameUpdate={(f) => setCurrentFrame(f)}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
               />
             </div>
           )}
@@ -433,23 +543,140 @@ export default function Home() {
 
         {/* 下部: タイムライン */}
         {videoPath && (
-          <div className="h-48 border-t border-[#333] bg-[#161616] flex flex-col">
-            <div className="h-10 border-b border-[#333] flex items-center px-4 gap-2 text-xs text-gray-500">
-              <div className="cursor-pointer hover:text-white">00:00</div>
-              <div className="flex-1 h-full flex items-center relative">
-                <div className="absolute inset-0 flex justify-between px-2">
-                  {[...Array(20)].map((_, i) => (
-                    <div key={i} className="w-px h-2 bg-[#333] self-end" />
+          <div className="h-64 border-t border-[#333] bg-[#1a1a1a] flex flex-col select-none relative group z-0">
+            {/* コントロールバー（簡易） */}
+            <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#161616] z-20 relative">
+              <div className="flex items-center gap-4 text-xs font-mono text-gray-400">
+                <span className="text-white">
+                  {new Date((currentFrame / FPS) * 1000).toISOString().substr(11, 8)}
+                </span>
+                <span className="text-gray-600">/</span>
+                <span>
+                  {new Date(duration * 1000).toISOString().substr(11, 8)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={togglePlay}
+                  className="p-1.5 hover:bg-[#333] rounded text-white transition-colors"
+                >
+                   {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                </button>
+                <button className="p-1.5 hover:bg-[#333] rounded text-gray-400 hover:text-white transition-colors">
+                   <Settings size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* タイムラインエリア */}
+            <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar relative">
+              <div 
+                ref={timelineRef}
+                className="relative min-w-full h-full cursor-pointer"
+                style={{ width: `${Math.max(duration, 10) * PIXELS_PER_SECOND}px` }} 
+                onClick={handleTimelineClick}
+              >
+                {/* ルーラー */}
+                <div className="h-8 border-b border-[#333] bg-[#161616] sticky top-0 z-10 flex items-end text-[10px] text-gray-500 font-mono pointer-events-none">
+                  {Array.from({ length: Math.ceil(duration) + 1 }).map((_, i) => (
+                    <div 
+                      key={i} 
+                      className="absolute bottom-0 border-l border-[#444] h-3 flex items-center pl-1"
+                      style={{ left: `${i * PIXELS_PER_SECOND}px` }}
+                    >
+                      <span className="absolute -top-4 -left-3 select-none">
+                        {new Date(i * 1000).toISOString().substr(14, 5)}
+                      </span>
+                      {/* サブ目盛り */}
+                      {[...Array(4)].map((_, j) => (
+                         <div 
+                           key={j} 
+                           className="absolute h-1.5 w-px bg-[#333]" 
+                           style={{ left: `${(j + 1) * (PIXELS_PER_SECOND / 5)}px`, bottom: 0 }} 
+                         />
+                      ))}
+                    </div>
                   ))}
+                </div>
+
+                {/* トラックエリア */}
+                <div className="p-4 relative">
+                  {/* 再生ヘッド（ライン） */}
+                  <div 
+                    className="absolute top-0 bottom-0 w-px bg-red-500 z-20 pointer-events-none shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-transform duration-75 ease-linear will-change-transform"
+                    style={{ transform: `translateX(${(currentFrame / FPS) * PIXELS_PER_SECOND}px)` }}
+                  >
+                    <div className="absolute -top-1 -left-1.5 w-3 h-3 bg-red-500 rotate-45 transform" />
+                  </div>
+
+                  {/* フィルムストリップ */}
+                  <div className="h-24 bg-[#252525] rounded-lg border border-[#333] overflow-hidden relative flex items-center">
+                    {/* 背景グリッドパターン（読み込み中用） */}
+                    <div className="absolute inset-0 opacity-10 pointer-events-none" 
+                         style={{ backgroundImage: 'linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: `${PIXELS_PER_SECOND}px 100%` }} 
+                    />
+                    
+                    {frames.length > 0 ? (
+                      <div className="flex h-full pointer-events-none">
+                        {frames.map((frame, index) => (
+                          <div 
+                            key={index} 
+                            className="h-full border-r border-[#333]/50 flex-shrink-0 relative overflow-hidden"
+                            style={{ width: `${PIXELS_PER_SECOND}px` }}
+                          >
+                            <img 
+                              src={frame} 
+                              alt={`Frame ${index}`} 
+                              className="w-full h-full object-cover opacity-80"
+                              loading="lazy"
+                              draggable={false}
+                            />
+                            <div className="absolute inset-0 bg-black/10" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center gap-3 text-gray-500 pointer-events-none">
+                        {isExtracting && <Loader2 size={16} className="animate-spin" />}
+                        <span className="text-xs font-medium">
+                          {isExtracting ? "フレーム抽出中..." : "No frames"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* 音声波形（ダミー） */}
+                  <div className="mt-2 h-12 bg-blue-900/10 rounded-lg border border-blue-500/20 overflow-hidden relative">
+                     <div className="absolute inset-0 flex items-center opacity-30">
+                        {Array.from({ length: Math.ceil(duration * 10) }).map((_, i) => (
+                           <div 
+                             key={i} 
+                             className="w-1 bg-blue-500 mx-px rounded-full"
+                             style={{ height: `${20 + Math.random() * 60}%` }}
+                           />
+                        ))}
+                     </div>
+                  </div>
+
                 </div>
               </div>
             </div>
-            <div className="flex-1 p-4 overflow-x-auto">
-              <div className="h-10 bg-purple-900/30 border border-purple-500/50 rounded-lg flex items-center px-3 text-purple-200 text-xs w-[500px]">
-                <Film size={14} className="mr-2" />
-                {videoFileName}
-              </div>
-            </div>
+            
+            {/* スクロールバーのスタイル定義 */}
+            <style jsx global>{`
+              .custom-scrollbar::-webkit-scrollbar {
+                height: 10px;
+                background: #1a1a1a;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #333;
+                border-radius: 5px;
+                border: 2px solid #1a1a1a;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: #555;
+              }
+            `}</style>
           </div>
         )}
       </main>
