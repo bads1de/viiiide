@@ -5,6 +5,7 @@ import { MyComposition } from "@/remotion/MyComposition";
 import { Download, Settings, Upload, Loader2 } from "lucide-react";
 import { DragEvent, useEffect } from "react";
 import { Subtitle } from "@/types/subtitle";
+import { useState, useRef } from "react";
 
 type VideoPlayerProps = {
   videoPath: string | null;
@@ -26,6 +27,8 @@ type VideoPlayerProps = {
   setIsPlaying: (isPlaying: boolean) => void;
   isExporting: boolean;
   onExport: () => void;
+  subtitlePosition: { x: number; y: number };
+  onSubtitleMove: (x: number, y: number) => void;
 };
 
 export const VideoPlayer = ({
@@ -48,6 +51,8 @@ export const VideoPlayer = ({
   setIsPlaying,
   isExporting,
   onExport,
+  subtitlePosition,
+  onSubtitleMove,
 }: VideoPlayerProps) => {
   useEffect(() => {
     const player = playerRef.current;
@@ -168,9 +173,126 @@ export const VideoPlayer = ({
               style={{ width: "100%", height: "100%" }}
               controls={false}
             />
+            {subtitles.length > 0 && (
+              <SubtitleDraggable
+                x={subtitlePosition.x}
+                y={subtitlePosition.y}
+                onMove={onSubtitleMove}
+                containerWidth={360}
+                containerHeight={640}
+              />
+            )}
           </div>
         )}
       </div>
     </main>
+  );
+};
+
+const SubtitleDraggable = ({
+  x,
+  y,
+  onMove,
+  containerWidth,
+  containerHeight,
+}: {
+  x: number;
+  y: number;
+  onMove: (x: number, y: number) => void;
+  containerWidth: number;
+  containerHeight: number;
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const startPos = useRef({ x: 0, y: 0 });
+  const startSubtitlePos = useRef({ x: 0, y: 0 });
+  const lastUpdate = useRef({ x, y });
+  const rafId = useRef<number | null>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDragging(true);
+    startPos.current = { x: e.clientX, y: e.clientY };
+    startSubtitlePos.current = { x, y };
+    lastUpdate.current = { x, y };
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (rafId.current) return;
+
+      rafId.current = requestAnimationFrame(() => {
+        rafId.current = null;
+        const dx = (e.clientX - startPos.current.x) * (1080 / containerWidth);
+        const dy = (e.clientY - startPos.current.y) * (1920 / containerHeight);
+
+        const nextX = Math.round(startSubtitlePos.current.x + dx);
+        const nextY = Math.round(startSubtitlePos.current.y + dy);
+
+        // 無駄な再レンダリングを防ぐために値が変わったときだけ呼ぶ
+        if (nextX !== lastUpdate.current.x || nextY !== lastUpdate.current.y) {
+          lastUpdate.current = { x: nextX, y: nextY };
+          onMove(nextX, nextY);
+        }
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+        rafId.current = null;
+      }
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      if (rafId.current) cancelAnimationFrame(rafId.current);
+    };
+  }, [isDragging, onMove, containerWidth, containerHeight]);
+
+  const scaleY = 1920 / containerHeight;
+  const scaleX = 1080 / containerWidth;
+
+  const displayY = y / scaleY;
+  const displayX = x / scaleX;
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      style={{
+        position: "absolute",
+        left: `calc(50% + ${displayX}px)`,
+        top: displayY,
+        width: "80%",
+        height: "80px",
+        transform: "translateX(-50%)",
+        border: isDragging
+          ? "2px solid #3b82f6"
+          : "2px dashed rgba(255,255,255,0.3)",
+        borderRadius: "8px",
+        cursor: "move",
+        zIndex: 100,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: isDragging
+          ? "rgba(59, 130, 246, 0.2)"
+          : "rgba(0,0,0,0.1)",
+        transition: isDragging
+          ? "none"
+          : "border-color 0.2s, background-color 0.2s, top 0.1s, left 0.1s",
+      }}
+    >
+      {isDragging && (
+        <div className="text-[10px] uppercase font-bold tracking-wider text-white/40 pointer-events-none select-none">
+          {Math.round(x)}, {Math.round(y)}
+        </div>
+      )}
+    </div>
   );
 };

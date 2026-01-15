@@ -31,6 +31,7 @@ export const useVideoEditor = () => {
     message: string;
     progress: number;
   }>({ status: "idle", message: "", progress: 0 });
+  const [subtitlePosition, setSubtitlePosition] = useState({ x: 0, y: 1600 });
 
   const playerRef = useRef<PlayerRef>(null) as RefObject<PlayerRef>;
   const timelineState = useRef<TimelineState>(null) as RefObject<TimelineState>;
@@ -242,7 +243,8 @@ export const useVideoEditor = () => {
 
               if (data.stage === "done" && videoPath) {
                 const subs = await fetchSubtitles(videoPath);
-                setSubtitles(subs);
+                // 現在の位置情報を適用してから状態を更新
+                setSubtitles(subs.map((s) => ({ ...s, ...subtitlePosition })));
               }
             } catch (e) {
               console.error("JSON Parse error", e);
@@ -258,6 +260,11 @@ export const useVideoEditor = () => {
       });
     }
   };
+
+  const updateSubtitlesPosition = useCallback((x: number, y: number) => {
+    setSubtitlePosition({ x, y });
+    setSubtitles((prev) => prev.map((s) => ({ ...s, x, y })));
+  }, []);
 
   const handleExport = async () => {
     if (!videoPath) return;
@@ -325,7 +332,8 @@ export const useVideoEditor = () => {
     handleFileSelect,
     handleRemoveVideo,
     handleGenerateSubtitles,
-
+    subtitlePosition,
+    updateSubtitlesPosition,
     handleExport,
   };
 };

@@ -32,6 +32,8 @@ export default function Home() {
     subtitles,
     isExporting,
     handleExport,
+    subtitlePosition,
+    updateSubtitlesPosition,
   } = useVideoEditor();
 
   return (
@@ -65,6 +67,8 @@ export default function Home() {
           subtitles={subtitles}
           isExporting={isExporting}
           onExport={handleExport}
+          subtitlePosition={subtitlePosition}
+          onSubtitleMove={updateSubtitlesPosition}
         />
 
         {videoPath && (

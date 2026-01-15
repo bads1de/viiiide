@@ -16,30 +16,30 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
 
   if (!activeSubtitle) return null;
 
+  const style: React.CSSProperties = {
+    position: "absolute",
+    textAlign: "center" as const,
+    width: "100%",
+    left: 0,
+    top: activeSubtitle.y !== undefined ? activeSubtitle.y : 1600,
+  };
+
+  const textStyle: React.CSSProperties = {
+    fontSize: 60,
+    fontFamily: "sans-serif",
+    fontWeight: 900,
+    textTransform: "uppercase" as const,
+    color: "white",
+    textShadow:
+      "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+    lineHeight: 1.2,
+    transform: `translateX(${activeSubtitle.x || 0}px)`,
+  };
+
   return (
     <AbsoluteFill className="justify-center items-center pointer-events-none">
-      <div
-        style={{
-          bottom: 150,
-          position: "absolute",
-          textAlign: "center",
-          width: "80%",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 60,
-            fontFamily: "sans-serif",
-            fontWeight: 900,
-            textTransform: "uppercase",
-            color: "white",
-            textShadow:
-              "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
-            lineHeight: 1.2,
-          }}
-        >
-          {activeSubtitle.text}
-        </div>
+      <div style={style}>
+        <div style={textStyle}>{activeSubtitle.text}</div>
       </div>
     </AbsoluteFill>
   );
