@@ -6,16 +6,16 @@ import {
   TimelineState,
   TimelineAction,
 } from "@xzdarcy/react-timeline-editor";
-import {
-  Settings,
-  Play,
-  Pause,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
+import { Settings, Play, Pause, ZoomIn, ZoomOut } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { PlayerRef } from "@remotion/player";
 import { WaveformTrack } from "./WaveformTrack";
+
+type CustomTimelineAction = TimelineAction & {
+  data?: {
+    frames?: string[];
+  };
+};
 
 type TimelineEditorProps = {
   videoPath: string | null;
@@ -59,7 +59,7 @@ export const TimelineEditor = ({
             end: duration,
             effectId: "video_effect",
             data: { frames },
-          },
+          } as CustomTimelineAction,
         ],
       },
       {
@@ -70,6 +70,7 @@ export const TimelineEditor = ({
             start: 0,
             end: duration,
             effectId: "audio_effect",
+            movable: false,
           },
         ],
       },
@@ -78,7 +79,8 @@ export const TimelineEditor = ({
 
   const getActionRender = (action: TimelineAction, row: TimelineRow) => {
     if (action.effectId === "video_effect") {
-      const frames = ((action.data as any)?.frames as string[]) || [];
+      const frames =
+        ((action as CustomTimelineAction).data?.frames as string[]) || [];
       return (
         <div className="w-full h-full flex overflow-hidden rounded-md">
           {frames.map((frame, i) => (
@@ -113,9 +115,7 @@ export const TimelineEditor = ({
             {new Date((currentFrame / FPS) * 1000).toISOString().substr(11, 8)}
           </span>
           <span className="text-gray-600">/</span>
-          <span>
-            {new Date(duration * 1000).toISOString().substr(11, 8)}
-          </span>
+          <span>{new Date(duration * 1000).toISOString().substr(11, 8)}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -184,7 +184,14 @@ export const TimelineEditor = ({
               playerRef.current.seekTo(time * FPS);
             }
           }}
-          onChange={(data) => setEditorData(data)}
+          onChange={(data) => {
+            const hasAudio = data.some((row) =>
+              row.actions.some((action) => action.id === "audio_action")
+            );
+            if (hasAudio) {
+              setEditorData(data);
+            }
+          }}
           autoScroll={true}
           style={{ width: "100%", height: "100%" }}
         />

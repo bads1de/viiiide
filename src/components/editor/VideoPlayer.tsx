@@ -2,13 +2,8 @@
 
 import { Player, PlayerRef } from "@remotion/player";
 import { MyComposition } from "@/remotion/MyComposition";
-import {
-  Download,
-  Settings,
-  Upload,
-  Loader2,
-} from "lucide-react";
-import { DragEvent } from "react";
+import { Download, Settings, Upload, Loader2 } from "lucide-react";
+import { DragEvent, useEffect } from "react";
 
 type VideoPlayerProps = {
   videoPath: string | null;
@@ -47,6 +42,21 @@ export const VideoPlayer = ({
   setCurrentFrame,
   setIsPlaying,
 }: VideoPlayerProps) => {
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+
+    player.addEventListener("play", onPlay);
+    player.addEventListener("pause", onPause);
+
+    return () => {
+      player.removeEventListener("play", onPlay);
+      player.removeEventListener("pause", onPause);
+    };
+  }, [playerRef, setIsPlaying, videoPath]); // videoPath changed means player might re-mount
   return (
     <main className="flex-1 bg-[#111] flex flex-col relative min-h-0">
       <header className="h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#161616]">
@@ -144,8 +154,6 @@ export const VideoPlayer = ({
               fps={FPS}
               style={{ width: "100%", height: "100%" }}
               controls={false}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
             />
           </div>
         )}
