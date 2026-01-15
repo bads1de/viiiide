@@ -4,4 +4,7 @@ export type Subtitle = {
   endInMs: number;
   x?: number;
   y?: number;
+  color?: string;
+  fontSize?: number;
+  strokeColor?: string;
 };

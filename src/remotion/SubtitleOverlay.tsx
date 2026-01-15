@@ -25,13 +25,16 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   };
 
   const textStyle: React.CSSProperties = {
-    fontSize: 60,
+    fontSize: activeSubtitle.fontSize || 60,
     fontFamily: "sans-serif",
     fontWeight: 900,
     textTransform: "uppercase" as const,
-    color: "white",
-    textShadow:
-      "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000",
+    color: activeSubtitle.color || "white",
+    textShadow: `-2px -2px 0 ${
+      activeSubtitle.strokeColor || "#000"
+    }, 2px -2px 0 ${activeSubtitle.strokeColor || "#000"}, -2px 2px 0 ${
+      activeSubtitle.strokeColor || "#000"
+    }, 2px 2px 0 ${activeSubtitle.strokeColor || "#000"}`,
     lineHeight: 1.2,
     transform: `translateX(${activeSubtitle.x || 0}px)`,
   };

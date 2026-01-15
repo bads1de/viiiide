@@ -130,4 +130,15 @@ describe("useVideoEditor", () => {
     // 最終的な期待値を確認するための目印として
     expect(result.current.subtitlePosition).toEqual({ x: 500, y: 600 });
   });
+
+  it("should update subtitle styles correctly", () => {
+    const { result } = renderHook(() => useVideoEditor());
+
+    act(() => {
+      result.current.updateSubtitleStyle({ color: "#ff0000", fontSize: 80 });
+    });
+
+    expect(result.current.subtitleStyle.color).toBe("#ff0000");
+    expect(result.current.subtitleStyle.fontSize).toBe(80);
+  });
 });

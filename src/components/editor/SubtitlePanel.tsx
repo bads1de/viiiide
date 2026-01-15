@@ -7,6 +7,9 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Palette,
+  Type,
+  PaintBucket,
 } from "lucide-react";
 
 type ProcessingState = {
@@ -21,6 +24,10 @@ type SubtitlePanelProps = {
   processingState: ProcessingState;
   onRemoveVideo: () => void;
   onGenerateSubtitles: () => void;
+  subtitleStyle: { fontSize: number; color: string; strokeColor: string };
+  onStyleChange: (
+    style: Partial<{ fontSize: number; color: string; strokeColor: string }>
+  ) => void;
 };
 
 export const SubtitlePanel = ({
@@ -29,6 +36,8 @@ export const SubtitlePanel = ({
   processingState,
   onRemoveVideo,
   onGenerateSubtitles,
+  subtitleStyle,
+  onStyleChange,
 }: SubtitlePanelProps) => {
   return (
     <aside className="w-[320px] bg-[#1a1a1a] border-r border-[#333] flex flex-col">
@@ -61,7 +70,9 @@ export const SubtitlePanel = ({
                   <Film size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{videoFileName}</p>
+                  <p className="text-sm font-medium truncate">
+                    {videoFileName}
+                  </p>
                   <p className="text-xs text-gray-500">アップロード済み</p>
                 </div>
                 <button
@@ -147,6 +158,115 @@ export const SubtitlePanel = ({
                   ? "生成中..."
                   : "字幕を生成する"}
               </button>
+            </div>
+
+            {/* スタイル設定 */}
+            <div className="bg-[#252525] rounded-xl p-5 border border-[#333]">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                  <Palette size={18} />
+                </div>
+                <h3 className="font-semibold">スタイル設定</h3>
+              </div>
+
+              <div className="space-y-6">
+                {/* フォントサイズ */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-400 flex items-center gap-2">
+                      <Type size={14} /> サイズ
+                    </span>
+                    <span className="text-blue-400 font-mono">
+                      {subtitleStyle.fontSize}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={20}
+                    max={150}
+                    step={2}
+                    value={subtitleStyle.fontSize}
+                    onChange={(e) =>
+                      onStyleChange({ fontSize: Number(e.target.value) })
+                    }
+                    className="w-full h-1.5 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                </div>
+
+                {/* 文字色 */}
+                <div className="space-y-3">
+                  <span className="text-xs text-gray-400 flex items-center gap-2">
+                    <div
+                      className="w-3.5 h-3.5 rounded-full border border-gray-600"
+                      style={{ backgroundColor: subtitleStyle.color }}
+                    />
+                    文字の色
+                  </span>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      "#ffffff",
+                      "#ffff00",
+                      "#ff0000",
+                      "#00ff00",
+                      "#00ffff",
+                      "#ff00ff",
+                    ].map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => onStyleChange({ color: c })}
+                        className={`w-8 h-8 rounded-lg border-2 transition-transform hover:scale-110 ${
+                          subtitleStyle.color === c
+                            ? "border-blue-500"
+                            : "border-transparent"
+                        }`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={subtitleStyle.color}
+                      onChange={(e) => onStyleChange({ color: e.target.value })}
+                      className="w-8 h-8 rounded-lg bg-transparent border-none p-0 cursor-pointer overflow-hidden"
+                    />
+                  </div>
+                </div>
+
+                {/* 縁取りの色 */}
+                <div className="space-y-3">
+                  <span className="text-xs text-gray-400 flex items-center gap-2">
+                    <PaintBucket size={14} /> 縁取り
+                  </span>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      "#000000",
+                      "#333333",
+                      "#666666",
+                      "#ffffff",
+                      "#ff0000",
+                      "#0000ff",
+                    ].map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => onStyleChange({ strokeColor: c })}
+                        className={`w-8 h-8 rounded-lg border-2 transition-transform hover:scale-110 ${
+                          subtitleStyle.strokeColor === c
+                            ? "border-blue-500"
+                            : "border-transparent"
+                        }`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={subtitleStyle.strokeColor}
+                      onChange={(e) =>
+                        onStyleChange({ strokeColor: e.target.value })
+                      }
+                      className="w-8 h-8 rounded-lg bg-transparent border-none p-0 cursor-pointer overflow-hidden"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </>
         )}

@@ -34,6 +34,8 @@ export default function Home() {
     handleExport,
     subtitlePosition,
     updateSubtitlesPosition,
+    subtitleStyle,
+    updateSubtitleStyle,
   } = useVideoEditor();
 
   return (
@@ -44,6 +46,8 @@ export default function Home() {
         processingState={processingState}
         onRemoveVideo={handleRemoveVideo}
         onGenerateSubtitles={handleGenerateSubtitles}
+        subtitleStyle={subtitleStyle}
+        onStyleChange={updateSubtitleStyle}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

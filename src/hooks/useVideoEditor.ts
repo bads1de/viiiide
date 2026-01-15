@@ -32,6 +32,11 @@ export const useVideoEditor = () => {
     progress: number;
   }>({ status: "idle", message: "", progress: 0 });
   const [subtitlePosition, setSubtitlePosition] = useState({ x: 0, y: 1600 });
+  const [subtitleStyle, setSubtitleStyle] = useState({
+    fontSize: 60,
+    color: "#ffffff",
+    strokeColor: "#000000",
+  });
 
   const playerRef = useRef<PlayerRef>(null) as RefObject<PlayerRef>;
   const timelineState = useRef<TimelineState>(null) as RefObject<TimelineState>;
@@ -243,8 +248,14 @@ export const useVideoEditor = () => {
 
               if (data.stage === "done" && videoPath) {
                 const subs = await fetchSubtitles(videoPath);
-                // 現在の位置情報を適用してから状態を更新
-                setSubtitles(subs.map((s) => ({ ...s, ...subtitlePosition })));
+                // 現在の位置情報とスタイルを適用してから状態を更新
+                setSubtitles(
+                  subs.map((s) => ({
+                    ...s,
+                    ...subtitlePosition,
+                    ...subtitleStyle,
+                  }))
+                );
               }
             } catch (e) {
               console.error("JSON Parse error", e);
@@ -265,6 +276,17 @@ export const useVideoEditor = () => {
     setSubtitlePosition({ x, y });
     setSubtitles((prev) => prev.map((s) => ({ ...s, x, y })));
   }, []);
+
+  const updateSubtitleStyle = useCallback(
+    (style: Partial<typeof subtitleStyle>) => {
+      setSubtitleStyle((prev) => {
+        const next = { ...prev, ...style };
+        setSubtitles((subs) => subs.map((s) => ({ ...s, ...next })));
+        return next;
+      });
+    },
+    []
+  );
 
   const handleExport = async () => {
     if (!videoPath) return;
@@ -334,6 +356,8 @@ export const useVideoEditor = () => {
     handleGenerateSubtitles,
     subtitlePosition,
     updateSubtitlesPosition,
+    subtitleStyle,
+    updateSubtitleStyle,
     handleExport,
   };
 };
