@@ -11,10 +11,13 @@ import { useState, useRef, useEffect } from "react";
 import { PlayerRef } from "@remotion/player";
 import { WaveformTrack } from "./WaveformTrack";
 import { TimeDisplay } from "./TimeDisplay";
+import { Subtitle } from "@/types/subtitle";
+import { subtitlesToTimelineActions } from "@/utils/timelineUtils";
 
 type CustomTimelineAction = TimelineAction & {
   data?: {
     frames?: string[];
+    text?: string;
   };
 };
 
@@ -22,6 +25,7 @@ type TimelineEditorProps = {
   videoPath: string | null;
   duration: number;
   frames: string[];
+  subtitles: Subtitle[];
   FPS: number;
   playerRef: React.RefObject<PlayerRef>;
   timelineState: React.RefObject<TimelineState>;
@@ -32,6 +36,7 @@ export const TimelineEditor = ({
   videoPath,
   duration,
   frames,
+  subtitles,
   FPS,
   playerRef,
   timelineState,
@@ -71,8 +76,12 @@ export const TimelineEditor = ({
           },
         ],
       },
+      {
+        id: "2",
+        actions: subtitlesToTimelineActions(subtitles),
+      },
     ]);
-  }, [videoPath, duration, frames]);
+  }, [videoPath, duration, frames, subtitles]);
 
   const getActionRender = (action: TimelineAction, row: TimelineRow) => {
     if (action.effectId === "video_effect") {
@@ -98,6 +107,13 @@ export const TimelineEditor = ({
           duration={duration}
           widthPerSecond={scaleWidth}
         />
+      );
+    }
+    if (action.effectId === "subtitle_effect") {
+      return (
+        <div className="w-full h-full bg-[#9333ea] rounded-full flex items-center px-2 border border-[#a855f7] overflow-hidden whitespace-nowrap text-xs">
+          {(action as CustomTimelineAction).data?.text}
+        </div>
       );
     }
     return null;
@@ -161,6 +177,7 @@ export const TimelineEditor = ({
           effects={{
             video_effect: { id: "video_effect", name: "Video" },
             audio_effect: { id: "audio_effect", name: "Audio" },
+            subtitle_effect: { id: "subtitle_effect", name: "Subtitles" },
           }}
           scaleWidth={scaleWidth}
           scale={1}

@@ -10,11 +10,14 @@ import {
 import { PlayerRef } from "@remotion/player";
 import { TimelineState } from "@xzdarcy/react-timeline-editor";
 import { extractFrames } from "@remotion/webcodecs";
+import { Subtitle } from "../types/subtitle";
+import { fetchSubtitles } from "../utils/subtitleUtils";
 
 export const useVideoEditor = () => {
   const [videoPath, setVideoPath] = useState<string | null>(null);
   const [videoFileName, setVideoFileName] = useState<string | null>(null);
   const [frames, setFrames] = useState<string[]>([]);
+  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
   const [duration, setDuration] = useState<number>(0);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -235,6 +238,11 @@ export const useVideoEditor = () => {
                 message: data.message,
                 progress: data.progress,
               });
+
+              if (data.stage === "done" && videoPath) {
+                const subs = await fetchSubtitles(videoPath);
+                setSubtitles(subs);
+              }
             } catch (e) {
               console.error("JSON Parse error", e);
             }
@@ -254,6 +262,7 @@ export const useVideoEditor = () => {
     videoPath,
     videoFileName,
     frames,
+    subtitles,
     duration,
     currentFrame,
     isPlaying,

@@ -4,11 +4,13 @@ import { Player, PlayerRef } from "@remotion/player";
 import { MyComposition } from "@/remotion/MyComposition";
 import { Download, Settings, Upload, Loader2 } from "lucide-react";
 import { DragEvent, useEffect } from "react";
+import { Subtitle } from "@/types/subtitle";
 
 type VideoPlayerProps = {
   videoPath: string | null;
   videoFileName: string | null;
   duration: number;
+  subtitles: Subtitle[];
   FPS: number;
   isPlaying: boolean;
   isDragging: boolean;
@@ -28,6 +30,7 @@ export const VideoPlayer = ({
   videoPath,
   videoFileName,
   duration,
+  subtitles,
   FPS,
   isPlaying,
   isDragging,
@@ -147,7 +150,7 @@ export const VideoPlayer = ({
             <Player
               ref={playerRef}
               component={MyComposition}
-              inputProps={{ videoSrc: videoPath }}
+              inputProps={{ videoSrc: videoPath, subtitles }}
               durationInFrames={Math.max(1, Math.ceil(duration * FPS))}
               compositionWidth={1080}
               compositionHeight={1920}

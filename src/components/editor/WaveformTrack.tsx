@@ -9,7 +9,11 @@ type WaveformTrackProps = {
   widthPerSecond: number;
 };
 
-export const WaveformTrack = ({ url, duration, widthPerSecond }: WaveformTrackProps) => {
+export const WaveformTrack = ({
+  url,
+  duration,
+  widthPerSecond,
+}: WaveformTrackProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
 

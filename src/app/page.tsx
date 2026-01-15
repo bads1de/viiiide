@@ -29,6 +29,7 @@ export default function Home() {
     handleFileSelect,
     handleRemoveVideo,
     handleGenerateSubtitles,
+    subtitles,
   } = useVideoEditor();
 
   return (
@@ -59,6 +60,7 @@ export default function Home() {
           onDrop={handleDrop}
           setCurrentFrame={setCurrentFrame}
           setIsPlaying={setIsPlaying}
+          subtitles={subtitles}
         />
 
         {videoPath && (
@@ -66,6 +68,7 @@ export default function Home() {
             videoPath={videoPath}
             duration={duration}
             frames={frames}
+            subtitles={subtitles}
             FPS={FPS}
             playerRef={playerRef}
             timelineState={timelineState}

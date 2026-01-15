@@ -1,10 +1,16 @@
 import { AbsoluteFill, OffthreadVideo, useCurrentFrame } from "remotion";
+import { SubtitleOverlay } from "./SubtitleOverlay";
+import { Subtitle } from "@/types/subtitle";
 
 type MyCompositionProps = {
   videoSrc?: string;
+  subtitles?: Subtitle[];
 };
 
-export const MyComposition: React.FC<MyCompositionProps> = ({ videoSrc }) => {
+export const MyComposition: React.FC<MyCompositionProps> = ({
+  videoSrc,
+  subtitles = [],
+}) => {
   const frame = useCurrentFrame();
 
   if (!videoSrc) {
@@ -26,6 +32,7 @@ export const MyComposition: React.FC<MyCompositionProps> = ({ videoSrc }) => {
           objectPosition: "center",
         }}
       />
+      {subtitles && <SubtitleOverlay subtitles={subtitles} />}
     </AbsoluteFill>
   );
 };
