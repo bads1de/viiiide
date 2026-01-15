@@ -30,6 +30,8 @@ export default function Home() {
     handleRemoveVideo,
     handleGenerateSubtitles,
     subtitles,
+    isExporting,
+    handleExport,
   } = useVideoEditor();
 
   return (
@@ -61,6 +63,8 @@ export default function Home() {
           setCurrentFrame={setCurrentFrame}
           setIsPlaying={setIsPlaying}
           subtitles={subtitles}
+          isExporting={isExporting}
+          onExport={handleExport}
         />
 
         {videoPath && (

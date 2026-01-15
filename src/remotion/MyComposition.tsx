@@ -5,6 +5,7 @@ import { Subtitle } from "@/types/subtitle";
 type MyCompositionProps = {
   videoSrc?: string;
   subtitles?: Subtitle[];
+  durationInFrames?: number;
 };
 
 export const MyComposition: React.FC<MyCompositionProps> = ({

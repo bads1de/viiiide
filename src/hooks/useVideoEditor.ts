@@ -24,6 +24,7 @@ export const useVideoEditor = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [processingState, setProcessingState] = useState<{
     status: "idle" | "processing" | "done" | "error";
@@ -258,6 +259,45 @@ export const useVideoEditor = () => {
     }
   };
 
+  const handleExport = async () => {
+    if (!videoPath) return;
+
+    setIsExporting(true);
+    try {
+      const response = await fetch("/api/render", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          videoPath,
+          subtitles,
+          durationInFrames: Math.ceil(duration * FPS),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Export failed");
+      }
+
+      const data = await response.json();
+      if (data.url) {
+        // Download logic
+        const link = document.createElement("a");
+        link.href = data.url;
+        link.download = `video_export_${Date.now()}.mp4`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      alert("エクスポートに失敗しました");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return {
     videoPath,
     videoFileName,
@@ -269,6 +309,7 @@ export const useVideoEditor = () => {
     isDragging,
     isUploading,
     isExtracting,
+    isExporting,
     uploadProgress,
     processingState,
     playerRef,
@@ -284,5 +325,7 @@ export const useVideoEditor = () => {
     handleFileSelect,
     handleRemoveVideo,
     handleGenerateSubtitles,
+
+    handleExport,
   };
 };

@@ -11,7 +11,9 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@remotion/bundler": "^4.0.406",
     "@remotion/captions": "^4.0.406",
+    "@remotion/compositor-win32-x64-msvc": "^4.0.406",
     "@remotion/install-whisper-cpp": "^4.0.406",
     "@remotion/media-utils": "^4.0.406",
     "@remotion/player": "^4.0.406",

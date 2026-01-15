@@ -24,6 +24,8 @@ type VideoPlayerProps = {
   onDrop: (e: DragEvent) => void;
   setCurrentFrame: (frame: number) => void;
   setIsPlaying: (isPlaying: boolean) => void;
+  isExporting: boolean;
+  onExport: () => void;
 };
 
 export const VideoPlayer = ({
@@ -44,6 +46,8 @@ export const VideoPlayer = ({
   onDrop,
   setCurrentFrame,
   setIsPlaying,
+  isExporting,
+  onExport,
 }: VideoPlayerProps) => {
   useEffect(() => {
     const player = playerRef.current;
@@ -71,14 +75,20 @@ export const VideoPlayer = ({
             <Settings size={16} /> 1080x1920
           </button>
           <button
-            disabled={!videoPath}
+            disabled={!videoPath || isExporting}
+            onClick={onExport}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
-              videoPath
+              videoPath && !isExporting
                 ? "bg-white text-black hover:bg-gray-200 shadow-lg shadow-white/5"
                 : "bg-[#333] text-gray-500 cursor-not-allowed"
             }`}
           >
-            <Download size={16} /> エクスポート
+            {isExporting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Download size={16} />
+            )}
+            {isExporting ? "出力中..." : "エクスポート"}
           </button>
         </div>
       </header>
