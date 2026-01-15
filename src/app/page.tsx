@@ -1,16 +1,11 @@
 "use client";
 
-import { useState } from "react";
-
-import { Sidebar } from "../components/layout/Sidebar";
 import { SubtitlePanel } from "../components/editor/SubtitlePanel";
 import { VideoPlayer } from "../components/editor/VideoPlayer";
 import { TimelineEditor } from "../components/editor/TimelineEditor";
 import { useVideoEditor } from "../hooks/useVideoEditor";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("subtitle");
-
   const {
     videoPath,
     videoFileName,
@@ -38,8 +33,6 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-[#1a1a1a] text-white font-sans overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-
       <SubtitlePanel
         videoPath={videoPath}
         videoFileName={videoFileName}
@@ -73,9 +66,7 @@ export default function Home() {
             videoPath={videoPath}
             duration={duration}
             frames={frames}
-            currentFrame={currentFrame}
             FPS={FPS}
-            isPlaying={isPlaying}
             playerRef={playerRef}
             timelineState={timelineState}
             onTogglePlay={handleTogglePlay}

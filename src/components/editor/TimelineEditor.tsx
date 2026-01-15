@@ -10,6 +10,7 @@ import { Settings, Play, Pause, ZoomIn, ZoomOut } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { PlayerRef } from "@remotion/player";
 import { WaveformTrack } from "./WaveformTrack";
+import { TimeDisplay } from "./TimeDisplay";
 
 type CustomTimelineAction = TimelineAction & {
   data?: {
@@ -21,9 +22,7 @@ type TimelineEditorProps = {
   videoPath: string | null;
   duration: number;
   frames: string[];
-  currentFrame: number;
   FPS: number;
-  isPlaying: boolean;
   playerRef: React.RefObject<PlayerRef>;
   timelineState: React.RefObject<TimelineState>;
   onTogglePlay: () => void;
@@ -33,9 +32,7 @@ export const TimelineEditor = ({
   videoPath,
   duration,
   frames,
-  currentFrame,
   FPS,
-  isPlaying,
   playerRef,
   timelineState,
   onTogglePlay,
@@ -110,19 +107,17 @@ export const TimelineEditor = ({
     <div className="h-64 border-t border-[#333] bg-[#1a1a1a] flex flex-col select-none relative group z-0 flex-shrink-0">
       {/* コントロールバー */}
       <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#161616] z-20 relative">
-        <div className="flex items-center gap-4 text-xs font-mono text-gray-400">
-          <span className="text-white">
-            {new Date((currentFrame / FPS) * 1000).toISOString().substr(11, 8)}
-          </span>
-          <span className="text-gray-600">/</span>
-          <span>{new Date(duration * 1000).toISOString().substr(11, 8)}</span>
-        </div>
+        <TimeDisplay playerRef={playerRef} duration={duration} FPS={FPS} />
         <div className="flex items-center gap-2">
           <button
             onClick={onTogglePlay}
             className="p-1.5 hover:bg-[#333] rounded text-white transition-colors"
           >
-            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+            {playerRef.current?.isPlaying() ? (
+              <Pause size={14} />
+            ) : (
+              <Play size={14} />
+            )}
           </button>
           <button className="p-1.5 hover:bg-[#333] rounded text-gray-400 hover:text-white transition-colors">
             <Settings size={14} />
@@ -173,15 +168,17 @@ export const TimelineEditor = ({
           rowHeight={64}
           getActionRender={getActionRender}
           onClickTimeArea={(time) => {
+            const frame = time * FPS;
             if (playerRef.current) {
-              playerRef.current.seekTo(time * FPS);
+              playerRef.current.seekTo(frame);
               return true;
             }
             return false;
           }}
           onCursorDrag={(time) => {
+            const frame = time * FPS;
             if (playerRef.current) {
-              playerRef.current.seekTo(time * FPS);
+              playerRef.current.seekTo(frame);
             }
           }}
           onChange={(data) => {
