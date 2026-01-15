@@ -1,0 +1,194 @@
+"use client";
+
+import {
+  Timeline,
+  TimelineRow,
+  TimelineState,
+  TimelineAction,
+} from "@xzdarcy/react-timeline-editor";
+import {
+  Settings,
+  Play,
+  Pause,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { PlayerRef } from "@remotion/player";
+import { WaveformTrack } from "./WaveformTrack";
+
+type TimelineEditorProps = {
+  videoPath: string | null;
+  duration: number;
+  frames: string[];
+  currentFrame: number;
+  FPS: number;
+  isPlaying: boolean;
+  playerRef: React.RefObject<PlayerRef>;
+  timelineState: React.RefObject<TimelineState>;
+  onTogglePlay: () => void;
+};
+
+export const TimelineEditor = ({
+  videoPath,
+  duration,
+  frames,
+  currentFrame,
+  FPS,
+  isPlaying,
+  playerRef,
+  timelineState,
+  onTogglePlay,
+}: TimelineEditorProps) => {
+  const [scaleWidth, setScaleWidth] = useState(120);
+  const [editorData, setEditorData] = useState<TimelineRow[]>([]);
+
+  useEffect(() => {
+    if (!videoPath || duration === 0) {
+      setEditorData([]);
+      return;
+    }
+
+    setEditorData([
+      {
+        id: "0",
+        actions: [
+          {
+            id: "video_action",
+            start: 0,
+            end: duration,
+            effectId: "video_effect",
+            data: { frames },
+          },
+        ],
+      },
+      {
+        id: "1",
+        actions: [
+          {
+            id: "audio_action",
+            start: 0,
+            end: duration,
+            effectId: "audio_effect",
+          },
+        ],
+      },
+    ]);
+  }, [videoPath, duration, frames]);
+
+  const getActionRender = (action: TimelineAction, row: TimelineRow) => {
+    if (action.effectId === "video_effect") {
+      const frames = ((action.data as any)?.frames as string[]) || [];
+      return (
+        <div className="w-full h-full flex overflow-hidden rounded-md">
+          {frames.map((frame, i) => (
+            <img
+              key={i}
+              src={frame}
+              className="h-full object-cover pointer-events-none"
+              style={{ width: `${scaleWidth}px` }}
+            />
+          ))}
+        </div>
+      );
+    }
+    if (action.effectId === "audio_effect") {
+      return (
+        <WaveformTrack
+          url={videoPath}
+          duration={duration}
+          widthPerSecond={scaleWidth}
+        />
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="h-64 border-t border-[#333] bg-[#1a1a1a] flex flex-col select-none relative group z-0 flex-shrink-0">
+      {/* コントロールバー */}
+      <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#161616] z-20 relative">
+        <div className="flex items-center gap-4 text-xs font-mono text-gray-400">
+          <span className="text-white">
+            {new Date((currentFrame / FPS) * 1000).toISOString().substr(11, 8)}
+          </span>
+          <span className="text-gray-600">/</span>
+          <span>
+            {new Date(duration * 1000).toISOString().substr(11, 8)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onTogglePlay}
+            className="p-1.5 hover:bg-[#333] rounded text-white transition-colors"
+          >
+            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          <button className="p-1.5 hover:bg-[#333] rounded text-gray-400 hover:text-white transition-colors">
+            <Settings size={14} />
+          </button>
+        </div>
+
+        {/* ズームコントロール */}
+        <div className="flex items-center gap-2 ml-4">
+          <button
+            onClick={() => setScaleWidth(Math.max(10, scaleWidth - 20))}
+            className="text-gray-400 hover:text-white"
+          >
+            <ZoomOut size={16} />
+          </button>
+          <input
+            type="range"
+            min={10}
+            max={400}
+            step={10}
+            value={scaleWidth}
+            onChange={(e) => setScaleWidth(Number(e.target.value))}
+            className="w-24 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          />
+          <button
+            onClick={() => setScaleWidth(Math.min(400, scaleWidth + 20))}
+            className="text-gray-400 hover:text-white"
+          >
+            <ZoomIn size={16} />
+          </button>
+          <span className="text-[10px] text-gray-500 w-8 text-center">
+            {scaleWidth}px
+          </span>
+        </div>
+      </div>
+
+      {/* タイムラインエリア */}
+      <div className="flex-1 relative bg-[#1a1a1a]">
+        <Timeline
+          ref={timelineState}
+          editorData={editorData}
+          effects={{
+            video_effect: { id: "video_effect", name: "Video" },
+            audio_effect: { id: "audio_effect", name: "Audio" },
+          }}
+          scaleWidth={scaleWidth}
+          scale={1}
+          startLeft={10}
+          rowHeight={64}
+          getActionRender={getActionRender}
+          onClickTimeArea={(time) => {
+            if (playerRef.current) {
+              playerRef.current.seekTo(time * FPS);
+              return true;
+            }
+            return false;
+          }}
+          onCursorDrag={(time) => {
+            if (playerRef.current) {
+              playerRef.current.seekTo(time * FPS);
+            }
+          }}
+          onChange={(data) => setEditorData(data)}
+          autoScroll={true}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
+    </div>
+  );
+};

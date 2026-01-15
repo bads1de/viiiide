@@ -23,6 +23,7 @@ export const MyComposition: React.FC<MyCompositionProps> = ({ videoSrc }) => {
           width: "100%",
           height: "100%",
           objectFit: "cover",
+          objectPosition: "center",
         }}
       />
     </AbsoluteFill>
