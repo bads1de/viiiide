@@ -3,13 +3,8 @@
 import {
   Film,
   X,
-  Wand2,
-  Loader2,
-  CheckCircle2,
-  AlertCircle,
   Palette,
   Type,
-  PaintBucket,
   ChevronDown,
   ChevronRight,
   Sparkles,
@@ -95,9 +90,7 @@ const CollapsibleSection = ({
 export const SubtitlePanel = ({
   videoPath,
   videoFileName,
-  processingState,
   onRemoveVideo,
-  onGenerateSubtitles,
   subtitles,
   onSubtitlesUpdate,
   subtitleStyle,
@@ -115,11 +108,6 @@ export const SubtitlePanel = ({
       />
 
       <aside className="w-[320px] bg-[#111] border-r border-[#333] flex flex-col">
-        <div className="p-6 border-b border-[#333]">
-          <h2 className="text-xl font-bold mb-1 text-white">字幕</h2>
-          <p className="text-sm text-gray-400">AIで自動生成または手動追加</p>
-        </div>
-
         <div className="p-4 flex-1 overflow-y-auto custom-scrollbar space-y-4">
           {/* 動画が選択されていない場合 */}
           {!videoPath && (
@@ -140,14 +128,14 @@ export const SubtitlePanel = ({
               {/* 選択中の動画 */}
               <div className="bg-[#1a1a1a] rounded-xl p-3 border border-[#333]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
                     <Film size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate text-gray-200">
                       {videoFileName}
                     </p>
-                    <p className="text-xs text-gray-500">アップロード済み</p>
+                    <p className="text-xs text-gray-500">プロジェクト</p>
                   </div>
                   <button
                     onClick={onRemoveVideo}
@@ -159,87 +147,24 @@ export const SubtitlePanel = ({
                 </div>
               </div>
 
-              {/* 字幕生成 */}
-              <div
-                className={`bg-[#1a1a1a] rounded-xl p-4 border transition-all duration-300 ${
-                  processingState.status === "processing"
-                    ? "border-blue-500/50 shadow-lg shadow-blue-500/10"
-                    : "border-[#333]"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Wand2 size={16} className="text-blue-400" />
-                  <h3 className="font-semibold text-sm text-gray-200">
-                    AI字幕生成
-                  </h3>
-                </div>
-
-                {processingState.status === "processing" && (
-                  <div className="mb-4">
-                    <div className="h-1.5 w-full bg-[#333] rounded-full overflow-hidden mb-2">
-                      <div
-                        className="h-full bg-blue-500 transition-all duration-300 ease-out"
-                        style={{ width: `${processingState.progress}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-blue-300">
-                        {processingState.message}
-                      </span>
-                      <span className="text-xs font-mono text-blue-300">
-                        {Math.round(processingState.progress)}%
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {processingState.status === "done" && (
-                  <div className="mb-4 p-2 bg-green-500/10 border border-green-500/20 rounded text-green-400 text-xs flex items-center gap-2">
-                    <CheckCircle2 size={14} /> 完了しました
-                  </div>
-                )}
-
-                {processingState.status === "error" && (
-                  <div className="mb-4 p-2 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-xs flex items-center gap-2">
-                    <AlertCircle size={14} /> {processingState.message}
-                  </div>
-                )}
-
-                <button
-                  onClick={onGenerateSubtitles}
-                  disabled={processingState.status === "processing"}
-                  className={`w-full py-2 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2 ${
-                    processingState.status === "processing"
-                      ? "bg-[#333] text-gray-500 cursor-wait"
-                      : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
-                  }`}
-                >
-                  {processingState.status === "processing" ? (
-                    <>
-                      <Loader2 size={14} className="animate-spin" /> 生成中...
-                    </>
-                  ) : (
-                    "字幕を生成する"
-                  )}
-                </button>
-              </div>
-
-              <div className="h-px bg-[#333] my-2" />
-
               {/* スタイル設定 (アコーディオン) */}
-              <div className="space-y-2">
+              <div className="space-y-2 pt-2">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
-                  Style Settings
+                  Style & Data
                 </h3>
 
                 {/* 字幕データ編集 */}
                 <div className="mb-2">
-                  <CollapsibleSection title="字幕データ" icon={Edit}>
+                  <CollapsibleSection
+                    title="字幕データ"
+                    icon={Edit}
+                    defaultOpen={true}
+                  >
                     <button
                       onClick={() => setIsEditModalOpen(true)}
-                      className="w-full py-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded text-sm text-gray-300 transition-colors"
+                      className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-medium transition-colors shadow-lg shadow-blue-600/20"
                     >
-                      字幕内容を編集
+                      字幕内容を編集する
                     </button>
                   </CollapsibleSection>
                 </div>
