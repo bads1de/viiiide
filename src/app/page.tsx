@@ -4,6 +4,7 @@ import { SubtitlePanel } from "../components/editor/SubtitlePanel";
 import { VideoPlayer } from "../components/editor/VideoPlayer";
 import { TimelineEditor } from "../components/editor/TimelineEditor";
 import { useVideoEditor } from "../hooks/useVideoEditor";
+import { ProjectLibrary } from "../components/editor/ProjectLibrary";
 
 export default function Home() {
   const {
@@ -37,10 +38,21 @@ export default function Home() {
     subtitleStyle,
     updateSubtitleStyle,
     updateSubtitles,
+    sessions,
+    activeSessionId,
+    isLibraryLoading,
+    loadSession,
   } = useVideoEditor();
 
   return (
     <div className="flex h-screen bg-[#1a1a1a] text-white font-sans overflow-hidden">
+      <ProjectLibrary
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onLoadSession={loadSession}
+        isLoading={isLibraryLoading}
+      />
+
       <SubtitlePanel
         videoPath={videoPath}
         videoFileName={videoFileName}

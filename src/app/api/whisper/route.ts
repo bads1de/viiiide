@@ -98,6 +98,18 @@ export async function POST(request: Request) {
         const finalJsonPath = inputVideo.replace(/\.[^.]+$/, ".json");
         writeFileSync(finalJsonPath, JSON.stringify(captions, null, 2));
 
+        // session.json に字幕情報を追記（オプションだが管理しやすくするため）
+        const sessionDir = path.dirname(inputVideo);
+        const sessionJsonPath = path.join(sessionDir, "session.json");
+        if (existsSync(sessionJsonPath)) {
+          const sessionData = JSON.parse(
+            readFileSync(sessionJsonPath, "utf-8")
+          );
+          sessionData.subtitlePath = videoPath.replace(/\.[^.]+$/, ".json");
+          sessionData.hasSubtitles = true;
+          writeFileSync(sessionJsonPath, JSON.stringify(sessionData, null, 2));
+        }
+
         // 後始末
         rmSync(tempWav, { force: true });
         rmSync(outputJson, { force: true });

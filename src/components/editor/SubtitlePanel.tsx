@@ -109,19 +109,6 @@ export const SubtitlePanel = ({
 
       <aside className="w-[320px] bg-[#111] border-r border-[#333] flex flex-col">
         <div className="p-4 flex-1 overflow-y-auto custom-scrollbar space-y-4">
-          {/* 動画が選択されていない場合 */}
-          {!videoPath && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#252525] flex items-center justify-center">
-                <Film size={28} className="text-gray-500" />
-              </div>
-              <p className="text-gray-400 text-sm mb-2">動画がありません</p>
-              <p className="text-gray-500 text-xs">
-                右のエリアに動画をドロップしてください
-              </p>
-            </div>
-          )}
-
           {/* 動画が選択されている場合 */}
           {videoPath && (
             <>

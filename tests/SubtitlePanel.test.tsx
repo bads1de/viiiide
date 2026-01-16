@@ -22,9 +22,9 @@ describe("SubtitlePanel", () => {
     onStyleChange: jest.fn(),
   };
 
-  it("renders empty state when no video is selected", () => {
+  it("does NOT render empty state message when no video is selected", () => {
     render(<SubtitlePanel {...defaultProps} />);
-    expect(screen.getByText("動画がありません")).toBeInTheDocument();
+    expect(screen.queryByText("動画がありません")).not.toBeInTheDocument();
   });
 
   it("renders video info but NOT the AI generation section", () => {

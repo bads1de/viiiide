@@ -36,9 +36,11 @@ describe("POST /api/upload", () => {
   it("returns 400 if file type is invalid", async () => {
     const formData = new FormData();
     // Use global File and Blob if available in Node 20+
-    const file = new File(["dummy content"], "test.txt", { type: "text/plain" });
+    const file = new File(["dummy content"], "test.txt", {
+      type: "text/plain",
+    });
     formData.append("video", file);
-    
+
     const request = new Request("http://localhost/api/upload", {
       method: "POST",
       body: formData,
@@ -53,7 +55,9 @@ describe("POST /api/upload", () => {
 
   it("returns 200 and saves file if valid video is uploaded", async () => {
     const formData = new FormData();
-    const file = new File(["dummy video data"], "test.mp4", { type: "video/mp4" });
+    const file = new File(["dummy video data"], "test.mp4", {
+      type: "video/mp4",
+    });
     formData.append("video", file);
 
     const request = new Request("http://localhost/api/upload", {
@@ -66,7 +70,7 @@ describe("POST /api/upload", () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.path).toContain("/uploads/");
+    expect(data.path).toContain("/sessions/");
     expect(writeFile).toHaveBeenCalled();
   });
 });

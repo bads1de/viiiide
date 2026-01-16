@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 export async function POST(request: Request) {
   try {
@@ -21,30 +22,45 @@ export async function POST(request: Request) {
       );
     }
 
-    // publicフォルダに保存
-    const publicDir = path.join(process.cwd(), "public", "uploads");
-    if (!existsSync(publicDir)) {
-      await mkdir(publicDir, { recursive: true });
+    // セッションUUID生成
+    const sessionId = uuidv4();
+    const sessionDir = path.join(
+      process.cwd(),
+      "public",
+      "sessions",
+      sessionId
+    );
+
+    if (!existsSync(sessionDir)) {
+      await mkdir(sessionDir, { recursive: true });
     }
 
-    // ファイル名をユニークにする
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const fileName = `${timestamp}_${originalName}`;
-    const filePath = path.join(publicDir, fileName);
+    // ファイル保存 (video.mp4として固定名で保存することで管理しやすくする)
+    const extension = path.extname(file.name) || ".mp4";
+    const videoFileName = `video${extension}`;
+    const filePath = path.join(sessionDir, videoFileName);
 
     // ファイルを保存
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // クライアントからアクセスできるパスを返す
-    const publicPath = `/uploads/${fileName}`;
+    // メタデータ (session.json) の作成
+    const metadata = {
+      id: sessionId,
+      originalName: file.name,
+      fileName: videoFileName,
+      videoPath: `/sessions/${sessionId}/${videoFileName}`,
+      createdAt: new Date().toISOString(),
+    };
+    const metadataPath = path.join(sessionDir, "session.json");
+    await writeFile(metadataPath, JSON.stringify(metadata, null, 2));
 
     return NextResponse.json({
       success: true,
-      path: publicPath,
-      fileName: fileName,
+      sessionId: sessionId,
+      path: metadata.videoPath,
+      fileName: file.name,
     });
   } catch (error) {
     console.error("Upload error:", error);

@@ -1,3 +1,5 @@
+"use client";
+
 import {
   useState,
   useCallback,
@@ -44,14 +46,34 @@ export const useVideoEditor = () => {
     animation: "karaoke" as AnimationType,
   });
 
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isLibraryLoading, setIsLibraryLoading] = useState(false);
+
   const playerRef = useRef<PlayerRef>(null) as RefObject<PlayerRef>;
   const timelineState = useRef<TimelineState>(null) as RefObject<TimelineState>;
   const FPS = 30;
 
-  // Load initial font
+  const fetchSessions = useCallback(async () => {
+    setIsLibraryLoading(true);
+    try {
+      const response = await fetch("/api/sessions");
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data.sessions || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch sessions:", error);
+    } finally {
+      setIsLibraryLoading(false);
+    }
+  }, []);
+
+  // Load initial font and sessions
   useEffect(() => {
     loadGoogleFont(subtitleStyle.fontFamily);
-  }, []);
+    fetchSessions();
+  }, [fetchSessions, subtitleStyle.fontFamily]);
 
   // プレイヤー同期ループ
   useEffect(() => {
@@ -147,7 +169,11 @@ export const useVideoEditor = () => {
       const result = await response.json();
       setVideoPath(result.path);
       setVideoFileName(result.fileName);
+      setActiveSessionId(result.sessionId);
       setUploadProgress(100);
+
+      // セッションリストを更新
+      await fetchSessions();
     } catch (error) {
       console.error("Upload error:", error);
       alert("アップロードに失敗しました");
@@ -155,6 +181,41 @@ export const useVideoEditor = () => {
       setIsUploading(false);
     }
   };
+
+  const loadSession = useCallback(
+    async (session: any) => {
+      setActiveSessionId(session.id);
+      setVideoPath(session.videoPath);
+      setVideoFileName(session.originalName);
+      setProcessingState({
+        status: session.hasSubtitles ? "done" : "idle",
+        message: session.hasSubtitles ? "字幕生成済み" : "",
+        progress: session.hasSubtitles ? 100 : 0,
+      });
+
+      // 字幕の読み込みを試行
+      const subs = await fetchSubtitles(session.videoPath);
+      if (subs.length > 0) {
+        setSubtitles(
+          subs.map((s) => ({
+            ...s,
+            ...subtitlePosition,
+            ...subtitleStyle,
+          }))
+        );
+      } else {
+        setSubtitles([]);
+      }
+
+      // 動画時間を取得するためにメタデータをロード
+      const video = document.createElement("video");
+      video.src = session.videoPath;
+      video.onloadedmetadata = () => {
+        setDuration(video.duration);
+      };
+    },
+    [subtitlePosition, subtitleStyle]
+  );
 
   const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -211,6 +272,7 @@ export const useVideoEditor = () => {
     setDuration(0);
     setIsPlaying(false);
     setProcessingState({ status: "idle", message: "", progress: 0 });
+    setActiveSessionId(null);
   };
 
   const handleGenerateSubtitles = async () => {
@@ -258,6 +320,9 @@ export const useVideoEditor = () => {
               });
 
               if (data.stage === "done" && videoPath) {
+                // セッションリストを更新（hasSubtitlesを反映させるため）
+                fetchSessions();
+
                 const subs = await fetchSubtitles(videoPath);
                 // 現在の位置情報とスタイルを適用してから状態を更新
                 setSubtitles(
@@ -290,7 +355,6 @@ export const useVideoEditor = () => {
 
   const updateSubtitleStyle = useCallback(
     async (style: Partial<typeof subtitleStyle>) => {
-      // フォントが変更された場合は、ロード
       if (style.fontFamily) {
         loadGoogleFont(style.fontFamily);
       }
@@ -333,7 +397,6 @@ export const useVideoEditor = () => {
 
       const data = await response.json();
       if (data.url) {
-        // Download logic
         const link = document.createElement("a");
         link.href = data.url;
         link.download = `video_export_${Date.now()}.mp4`;
@@ -382,5 +445,9 @@ export const useVideoEditor = () => {
     subtitleStyle,
     updateSubtitleStyle,
     handleExport,
+    sessions,
+    activeSessionId,
+    isLibraryLoading,
+    loadSession,
   };
 };
