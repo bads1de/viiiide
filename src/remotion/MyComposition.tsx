@@ -1,6 +1,8 @@
 import { AbsoluteFill, OffthreadVideo, useCurrentFrame } from "remotion";
 import { SubtitleOverlay } from "./SubtitleOverlay";
 import { Subtitle } from "@/types/subtitle";
+import { loadGoogleFont } from "@/utils/googleFonts";
+import { useEffect } from "react";
 
 type MyCompositionProps = {
   videoSrc?: string;
@@ -13,6 +15,18 @@ export const MyComposition: React.FC<MyCompositionProps> = ({
   subtitles = [],
 }) => {
   const frame = useCurrentFrame();
+
+  // 全字幕で使用されているフォントをロード
+  useEffect(() => {
+    const uniqueFonts = Array.from(
+      new Set(subtitles.map((s) => s.fontFamily).filter(Boolean))
+    );
+    uniqueFonts.forEach((fontFamily) => {
+      if (fontFamily) {
+        loadGoogleFont(fontFamily);
+      }
+    });
+  }, [subtitles]);
 
   if (!videoSrc) {
     return (

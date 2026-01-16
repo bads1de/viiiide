@@ -7,4 +7,5 @@ export type Subtitle = {
   color?: string;
   fontSize?: number;
   strokeColor?: string;
+  fontFamily?: string;
 };

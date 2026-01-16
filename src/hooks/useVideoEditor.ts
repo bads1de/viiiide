@@ -12,6 +12,7 @@ import { TimelineState } from "@xzdarcy/react-timeline-editor";
 import { extractFrames } from "@remotion/webcodecs";
 import { Subtitle } from "../types/subtitle";
 import { fetchSubtitles } from "../utils/subtitleUtils";
+import { loadGoogleFont } from "../utils/googleFonts";
 
 export const useVideoEditor = () => {
   const [videoPath, setVideoPath] = useState<string | null>(null);
@@ -36,11 +37,17 @@ export const useVideoEditor = () => {
     fontSize: 60,
     color: "#ffffff",
     strokeColor: "#000000",
+    fontFamily: "Roboto",
   });
 
   const playerRef = useRef<PlayerRef>(null) as RefObject<PlayerRef>;
   const timelineState = useRef<TimelineState>(null) as RefObject<TimelineState>;
   const FPS = 30;
+
+  // Load initial font
+  useEffect(() => {
+    loadGoogleFont(subtitleStyle.fontFamily);
+  }, []);
 
   // プレイヤー同期ループ
   useEffect(() => {
@@ -278,10 +285,17 @@ export const useVideoEditor = () => {
   }, []);
 
   const updateSubtitleStyle = useCallback(
-    (style: Partial<typeof subtitleStyle>) => {
+    async (style: Partial<typeof subtitleStyle>) => {
+      // フォントが変更された場合は、ロード
+      if (style.fontFamily) {
+        loadGoogleFont(style.fontFamily);
+      }
       setSubtitleStyle((prev) => {
         const next = { ...prev, ...style };
-        setSubtitles((subs) => subs.map((s) => ({ ...s, ...next })));
+        setSubtitles((subs) => {
+          const updated = subs.map((s) => ({ ...s, ...next }));
+          return updated;
+        });
         return next;
       });
     },

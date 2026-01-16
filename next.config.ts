@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: [
@@ -9,6 +10,13 @@ const nextConfig: NextConfig = {
     "remotion",
     "esbuild",
   ],
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "clsx/dist/clsx.m.js": path.resolve(__dirname, "node_modules/clsx/dist/clsx.mjs"),
+    };
+    return config;
+  },
 };
 
 export default nextConfig;

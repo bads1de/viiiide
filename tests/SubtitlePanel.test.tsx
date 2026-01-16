@@ -9,6 +9,13 @@ describe("SubtitlePanel", () => {
     processingState: { status: "idle" as const, message: "", progress: 0 },
     onRemoveVideo: jest.fn(),
     onGenerateSubtitles: jest.fn(),
+    subtitleStyle: {
+      fontSize: 60,
+      color: "#ffffff",
+      strokeColor: "#000000",
+      fontFamily: "Roboto",
+    },
+    onStyleChange: jest.fn(),
   };
 
   it("renders empty state when no video is selected", () => {
@@ -88,10 +95,7 @@ describe("SubtitlePanel", () => {
         onRemoveVideo={onRemoveVideo}
       />
     );
-    // Lucide icon buttons usually don't have text, so we'll find by the button's structure or aria if it had any.
-    // In this case, we can find the button that contains the X icon by using its parent or role.
-    const removeButton = screen.getByRole("button", { name: "" }); // The only other button besides '字幕を生成する'
-    // Alternatively, let's be more specific by finding the button near the filename
+    const removeButton = screen.getByLabelText("Remove video");
     fireEvent.click(removeButton);
     expect(onRemoveVideo).toHaveBeenCalled();
   });

@@ -3,9 +3,10 @@
 import { Player, PlayerRef } from "@remotion/player";
 import { MyComposition } from "@/remotion/MyComposition";
 import { Download, Settings, Upload, Loader2 } from "lucide-react";
-import { DragEvent, useEffect } from "react";
+import { DragEvent, useEffect, useMemo, useCallback } from "react";
 import { Subtitle } from "@/types/subtitle";
 import { useState, useRef } from "react";
+import { PreviewSubtitleOverlay } from "./PreviewSubtitleOverlay";
 
 type VideoPlayerProps = {
   videoPath: string | null;
@@ -54,21 +55,29 @@ export const VideoPlayer = ({
   subtitlePosition,
   onSubtitleMove,
 }: VideoPlayerProps) => {
+  const [currentTimeMs, setCurrentTimeMs] = useState(0);
+
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
 
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
+    const onTimeUpdate = (e: { detail: { frame: number } }) => {
+      const timeMs = (e.detail.frame / FPS) * 1000;
+      setCurrentTimeMs(timeMs);
+    };
 
     player.addEventListener("play", onPlay);
     player.addEventListener("pause", onPause);
+    player.addEventListener("timeupdate", onTimeUpdate as any);
 
     return () => {
       player.removeEventListener("play", onPlay);
       player.removeEventListener("pause", onPause);
+      player.removeEventListener("timeupdate", onTimeUpdate as any);
     };
-  }, [playerRef, setIsPlaying, videoPath]); // videoPath changed means player might re-mount
+  }, [playerRef, setIsPlaying, videoPath, FPS]); // videoPath changed means player might re-mount
   return (
     <main className="flex-1 bg-[#111] flex flex-col relative min-h-0">
       <header className="h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#161616]">

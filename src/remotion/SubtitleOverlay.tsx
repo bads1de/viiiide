@@ -1,5 +1,7 @@
 import { Subtitle } from "@/types/subtitle";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { loadGoogleFont } from "@/utils/googleFonts";
+import { useEffect } from "react";
 
 export const getActiveSubtitle = (subtitles: Subtitle[], timeInMs: number) => {
   return subtitles.find(
@@ -14,6 +16,13 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
 
   const activeSubtitle = getActiveSubtitle(subtitles, timeInMs);
 
+  // フォントをロード
+  useEffect(() => {
+    if (activeSubtitle?.fontFamily) {
+      loadGoogleFont(activeSubtitle.fontFamily);
+    }
+  }, [activeSubtitle?.fontFamily]);
+
   if (!activeSubtitle) return null;
 
   const style: React.CSSProperties = {
@@ -26,7 +35,7 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
 
   const textStyle: React.CSSProperties = {
     fontSize: activeSubtitle.fontSize || 60,
-    fontFamily: "sans-serif",
+    fontFamily: `"${activeSubtitle.fontFamily || "Roboto"}", sans-serif`,
     fontWeight: 900,
     textTransform: "uppercase" as const,
     color: activeSubtitle.color || "white",
