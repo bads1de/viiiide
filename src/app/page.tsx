@@ -36,6 +36,7 @@ export default function Home() {
     updateSubtitlesPosition,
     subtitleStyle,
     updateSubtitleStyle,
+    updateSubtitles,
   } = useVideoEditor();
 
   return (
@@ -46,6 +47,8 @@ export default function Home() {
         processingState={processingState}
         onRemoveVideo={handleRemoveVideo}
         onGenerateSubtitles={handleGenerateSubtitles}
+        subtitles={subtitles}
+        onSubtitlesUpdate={updateSubtitles}
         subtitleStyle={subtitleStyle}
         onStyleChange={updateSubtitleStyle}
       />

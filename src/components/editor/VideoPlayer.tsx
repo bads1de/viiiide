@@ -158,9 +158,8 @@ export const VideoPlayer = ({
         {/* 動画プレビュー */}
         {videoPath && (
           <div
-            className="relative shadow-2xl shadow-black rounded-lg overflow-hidden ring-1 ring-[#333] cursor-pointer"
+            className="relative shadow-2xl shadow-black rounded-lg overflow-hidden ring-1 ring-[#333]"
             style={{ width: "360px", height: "640px" }}
-            onClick={onTogglePlay}
           >
             <Player
               ref={playerRef}

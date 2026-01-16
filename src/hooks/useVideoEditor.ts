@@ -304,6 +304,10 @@ export const useVideoEditor = () => {
     []
   );
 
+  const updateSubtitles = useCallback((newSubtitles: Subtitle[]) => {
+    setSubtitles(newSubtitles);
+  }, []);
+
   const handleExport = async () => {
     if (!videoPath) return;
 
@@ -367,6 +371,7 @@ export const useVideoEditor = () => {
     handleDragLeave,
     handleDragOver,
     handleDrop,
+    updateSubtitles,
     handleFileSelect,
     handleRemoveVideo,
     handleGenerateSubtitles,
