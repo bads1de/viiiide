@@ -76,9 +76,6 @@ export const VideoPlayer = ({
           {videoFileName || "新規プロジェクト"}
         </div>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 bg-[#333] hover:bg-[#444] rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-            <Settings size={16} /> 1080x1920
-          </button>
           <button
             disabled={!videoPath || isExporting}
             onClick={onExport}

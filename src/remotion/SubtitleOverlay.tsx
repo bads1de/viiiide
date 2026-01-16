@@ -30,20 +30,6 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   const { fps } = useVideoConfig();
   const timeInMs = (frame / fps) * 1000;
 
-  // TikTok スタイルのページを生成
-  const pages = useMemo(() => {
-    if (subtitles.length === 0) return [];
-    return createCaptionPages(subtitles, 1200);
-  }, [subtitles]);
-
-  // 現在のページを取得
-  const currentPage = useMemo(() => {
-    return pages.find(
-      (page) =>
-        timeInMs >= page.startMs && timeInMs < page.startMs + page.durationMs
-    );
-  }, [pages, timeInMs]);
-
   // スタイル情報を最初の字幕から取得
   const subtitleData = subtitles[0] || {};
 
@@ -52,6 +38,40 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
     const presetId = subtitleData.presetId;
     return presetId ? getPresetById(presetId) : null;
   }, [subtitleData]);
+
+  // ベース/アクティブスタイルを決定
+  // ユーザー設定（subtitleData）を優先し、フォールバックとしてプリセット値を使用
+  const baseStyle: TokenStyle = {
+    fontFamily:
+      subtitleData.fontFamily || preset?.baseStyle.fontFamily || "Roboto",
+    fontSize: subtitleData.fontSize || preset?.baseStyle.fontSize || 60,
+    color: subtitleData.color || preset?.baseStyle.color || "#FFFFFF",
+    strokeColor:
+      subtitleData.strokeColor || preset?.baseStyle.strokeColor || "#000000",
+    fontWeight: preset?.baseStyle.fontWeight || 700,
+    italic: preset?.baseStyle.italic,
+  };
+
+  // TikTok スタイルのページを生成
+  const pages = useMemo(() => {
+    if (subtitles.length === 0) return [];
+
+    // フォントサイズに基づいて1ページの最大単語数を決定
+    // 例: 60px -> 4単語, 30px -> 8単語
+    // 基準値: 280 (60px * 4.6words)
+    const fontSize = baseStyle.fontSize;
+    const maxTokens = Math.max(1, Math.floor(280 / fontSize));
+
+    return createCaptionPages(subtitles, 1200, maxTokens);
+  }, [subtitles, baseStyle.fontSize]);
+
+  // 現在のページを取得
+  const currentPage = useMemo(() => {
+    return pages.find(
+      (page) =>
+        timeInMs >= page.startMs && timeInMs < page.startMs + page.durationMs
+    );
+  }, [pages, timeInMs]);
 
   const animationType =
     subtitleData.animation || preset?.animation || "karaoke";
@@ -85,6 +105,15 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   });
   const animationStyle = getAnimationStyle(animationValues);
 
+  // Shrink to Fit (はみ出し防止)
+  // ページ全体の推定幅を計算
+  const charCount = currentPage.text ? currentPage.text.length : 0;
+  // 日本語と英語で幅が違うため簡易的な係数を使用
+  const estimatedWidth = charCount * baseStyle.fontSize * 0.8;
+  const maxContainerWidth = 900; // 画面幅(1080) - マージン
+  const shrinkScale =
+    estimatedWidth > maxContainerWidth ? maxContainerWidth / estimatedWidth : 1;
+
   const containerStyle: React.CSSProperties = {
     position: "absolute",
     textAlign: "center" as const,
@@ -92,25 +121,18 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
     left: 0,
     top: subtitleData.y !== undefined ? subtitleData.y : 1600,
     ...animationStyle,
+    // アニメーションのスケールとは別に、コンテナ全体を縮小して収める
+    transform: `${animationStyle.transform || ""} scale(${shrinkScale})`,
   };
 
-  // ベース/アクティブスタイルを決定
-  const baseStyle: TokenStyle = {
-    fontFamily:
-      preset?.baseStyle.fontFamily || subtitleData.fontFamily || "Roboto",
-    fontSize: preset?.baseStyle.fontSize || subtitleData.fontSize || 60,
-    color: preset?.baseStyle.color || subtitleData.color || "#FFFFFF",
-    strokeColor:
-      preset?.baseStyle.strokeColor || subtitleData.strokeColor || "#000000",
-    fontWeight: preset?.baseStyle.fontWeight || 700,
-    italic: preset?.baseStyle.italic,
-  };
+  // アクティブ時のフォントサイズ倍率を計算
+  const activeScaleRatio = preset
+    ? preset.activeStyle.fontSize / preset.baseStyle.fontSize
+    : 1.2;
 
   const activeStyle: TokenStyle = {
-    fontFamily:
-      preset?.activeStyle.fontFamily || subtitleData.fontFamily || "Roboto",
-    fontSize:
-      preset?.activeStyle.fontSize || (subtitleData.fontSize || 60) * 1.2,
+    fontFamily: preset?.activeStyle.fontFamily || baseStyle.fontFamily,
+    fontSize: baseStyle.fontSize * activeScaleRatio,
     color: preset?.activeStyle.color || "#FFD700",
     strokeColor: preset?.activeStyle.strokeColor || baseStyle.strokeColor,
     fontWeight: preset?.activeStyle.fontWeight || 900,

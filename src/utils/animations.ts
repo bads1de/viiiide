@@ -20,14 +20,47 @@ export const subtitleToCaption = (subtitle: Subtitle): Caption => ({
 // 字幕配列から TikTok スタイルのページを生成
 export const createCaptionPages = (
   subtitles: Subtitle[],
-  combineWithinMs: number = 800
+  combineWithinMs: number = 800,
+  maxTokensPerPage: number = 0 // 0の場合は制限なし
 ) => {
   const captions = subtitles.map(subtitleToCaption);
   const { pages } = createTikTokStyleCaptions({
     captions,
     combineTokensWithinMilliseconds: combineWithinMs,
   });
-  return pages;
+
+  if (maxTokensPerPage <= 0) {
+    return pages;
+  }
+
+  // maxTokensPerPageを超えるページを分割
+  const splitPages: typeof pages = [];
+
+  for (const page of pages) {
+    if (page.tokens.length <= maxTokensPerPage) {
+      splitPages.push(page);
+      continue;
+    }
+
+    // 分割処理
+    const tokens = page.tokens;
+    for (let i = 0; i < tokens.length; i += maxTokensPerPage) {
+      const chunkTokens = tokens.slice(i, i + maxTokensPerPage);
+      if (chunkTokens.length === 0) continue;
+
+      const firstToken = chunkTokens[0];
+      const lastToken = chunkTokens[chunkTokens.length - 1];
+
+      splitPages.push({
+        tokens: chunkTokens,
+        startMs: firstToken.fromMs,
+        durationMs: lastToken.toMs - firstToken.fromMs,
+        text: chunkTokens.map((t) => t.text).join(""),
+      });
+    }
+  }
+
+  return splitPages;
 };
 
 // アニメーション値の型
