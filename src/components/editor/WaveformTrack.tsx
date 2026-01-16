@@ -25,7 +25,7 @@ export const WaveformTrack = ({
       waveColor: "rgba(147, 51, 234, 0.6)",
       progressColor: "rgba(147, 51, 234, 0.6)",
       cursorColor: "transparent",
-      height: 32,
+      height: 24,
       minPxPerSec: widthPerSecond,
       normalize: true,
       interact: false,
@@ -40,5 +40,10 @@ export const WaveformTrack = ({
     };
   }, [url, widthPerSecond]);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-full flex flex-col justify-center"
+    />
+  );
 };

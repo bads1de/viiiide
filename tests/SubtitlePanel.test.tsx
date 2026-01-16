@@ -33,7 +33,7 @@ describe("SubtitlePanel", () => {
       />
     );
     expect(screen.getByText("test.mp4")).toBeInTheDocument();
-    expect(screen.getByText("自動字幕起こし")).toBeInTheDocument();
+    expect(screen.getByText("AI字幕生成")).toBeInTheDocument();
     expect(screen.getByText("字幕を生成する")).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe("SubtitlePanel", () => {
         }}
       />
     );
-    expect(screen.getByText("完了しました！")).toBeInTheDocument();
+    expect(screen.getByText("完了しました")).toBeInTheDocument();
   });
 
   it("calls onGenerateSubtitles when button is clicked", () => {

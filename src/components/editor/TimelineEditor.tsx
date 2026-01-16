@@ -111,7 +111,7 @@ export const TimelineEditor = ({
     }
     if (action.effectId === "subtitle_effect") {
       return (
-        <div className="w-full h-full bg-[#9333ea] rounded-full flex items-center px-2 border border-[#a855f7] overflow-hidden whitespace-nowrap text-xs">
+        <div className="w-full h-[80%] my-auto bg-[#8b5cf6] rounded flex items-center px-1.5 border border-[#a78bfa]/50 overflow-hidden whitespace-nowrap text-[10px] text-white/90 shadow-sm">
           {(action as CustomTimelineAction).data?.text}
         </div>
       );
@@ -122,7 +122,7 @@ export const TimelineEditor = ({
   return (
     <div className="h-64 border-t border-[#333] bg-[#1a1a1a] flex flex-col select-none relative group z-0 flex-shrink-0">
       {/* コントロールバー */}
-      <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#161616] z-20 relative">
+      <div className="h-10 border-b border-[#333] flex items-center px-4 justify-between bg-[#1f1f1f] z-20 relative">
         <TimeDisplay playerRef={playerRef} duration={duration} FPS={FPS} />
         <div className="flex items-center gap-2">
           <button
@@ -170,7 +170,7 @@ export const TimelineEditor = ({
       </div>
 
       {/* タイムラインエリア */}
-      <div className="flex-1 relative bg-[#1a1a1a]">
+      <div className="flex-1 relative bg-[#151515]">
         <Timeline
           ref={timelineState}
           editorData={editorData}
@@ -182,7 +182,7 @@ export const TimelineEditor = ({
           scaleWidth={scaleWidth}
           scale={1}
           startLeft={10}
-          rowHeight={64}
+          rowHeight={40}
           getActionRender={getActionRender}
           onClickTimeArea={(time) => {
             const frame = time * FPS;

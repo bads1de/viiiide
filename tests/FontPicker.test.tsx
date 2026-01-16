@@ -1,23 +1,17 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { FontPicker } from '../src/components/editor/FontPicker';
-import { getAvailableFonts } from '@remotion/google-fonts';
+import { FontPicker } from '@/components/editor/FontPicker';
+import * as GoogleFontsUtils from '@/utils/googleFonts';
 
-// Mock @remotion/google-fonts
-jest.mock('@remotion/google-fonts', () => ({
-  getAvailableFonts: jest.fn(),
-  loadFont: jest.fn(),
+// Mock the utils
+jest.mock('@/utils/googleFonts', () => ({
+  loadGoogleFont: jest.fn(),
+  POPULAR_FONTS: ['Roboto', 'Open Sans', 'Inter'],
 }));
-
-const mockFonts = [
-  { fontFamily: 'Roboto' },
-  { fontFamily: 'Open Sans' },
-  { fontFamily: 'Inter' },
-];
 
 describe('FontPicker', () => {
   beforeEach(() => {
-    (getAvailableFonts as jest.Mock).mockReturnValue(mockFonts);
+    jest.clearAllMocks();
   });
 
   it('renders available fonts', () => {
@@ -26,6 +20,7 @@ describe('FontPicker', () => {
     expect(screen.getByText('Roboto')).toBeInTheDocument();
     expect(screen.getByText('Open Sans')).toBeInTheDocument();
     expect(screen.getByText('Inter')).toBeInTheDocument();
+    expect(screen.getByText('3 fonts')).toBeInTheDocument();
   });
 
   it('calls onSelect when a font is clicked', () => {
@@ -36,13 +31,14 @@ describe('FontPicker', () => {
     fireEvent.click(fontOption);
     
     expect(onSelect).toHaveBeenCalledWith('Open Sans');
+    expect(GoogleFontsUtils.loadGoogleFont).toHaveBeenCalledWith('Open Sans');
   });
 
   it('highlights the selected font', () => {
     render(<FontPicker onSelect={jest.fn()} selectedFont="Roboto" />);
     
-    const selectedOption = screen.getByText('Roboto');
-    expect(selectedOption.closest('button')).toHaveAttribute('data-selected', 'true');
+    const selectedOption = screen.getByText('Roboto').closest('button');
+    expect(selectedOption).toHaveClass('bg-blue-600/20');
   });
 
   it('filters fonts when searching', () => {
