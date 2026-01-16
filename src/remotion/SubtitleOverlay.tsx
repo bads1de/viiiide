@@ -1,48 +1,58 @@
 import { Subtitle } from "@/types/subtitle";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { loadGoogleFont } from "@/utils/googleFonts";
-import { calculateAnimation, getAnimationStyle } from "@/utils/animations";
+import {
+  createCaptionPages,
+  calculateAnimation,
+  getAnimationStyle,
+} from "@/utils/animations";
 import { useEffect, useMemo } from "react";
-
-export const getActiveSubtitle = (subtitles: Subtitle[], timeInMs: number) => {
-  return subtitles.find(
-    (sub) => timeInMs >= sub.startInMs && timeInMs < sub.endInMs
-  );
-};
 
 export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const timeInMs = (frame / fps) * 1000;
 
-  const activeSubtitle = getActiveSubtitle(subtitles, timeInMs);
+  // TikTok スタイルのページを生成
+  const pages = useMemo(() => {
+    if (subtitles.length === 0) return [];
+    return createCaptionPages(subtitles, 1200); // 1.2秒で単語をグループ化
+  }, [subtitles]);
+
+  // 現在のページを取得
+  const currentPage = useMemo(() => {
+    return pages.find(
+      (page) =>
+        timeInMs >= page.startMs && timeInMs < page.startMs + page.durationMs
+    );
+  }, [pages, timeInMs]);
+
+  // スタイル情報を最初の字幕から取得
+  const style = subtitles[0] || {};
+  const animationType = style.animation || "karaoke";
 
   // フォントをロード
   useEffect(() => {
-    if (activeSubtitle?.fontFamily) {
-      loadGoogleFont(activeSubtitle.fontFamily);
+    if (style.fontFamily) {
+      loadGoogleFont(style.fontFamily);
     }
-  }, [activeSubtitle?.fontFamily]);
+  }, [style.fontFamily]);
 
-  // アニメーション値を計算
-  const animationValues = useMemo(() => {
-    if (!activeSubtitle) return null;
+  if (!currentPage) return null;
 
-    const startFrame = Math.floor((activeSubtitle.startInMs / 1000) * fps);
-    const endFrame = Math.floor((activeSubtitle.endInMs / 1000) * fps);
+  // アニメーション計算
+  const startFrame = Math.floor((currentPage.startMs / 1000) * fps);
+  const endFrame = Math.floor(
+    ((currentPage.startMs + currentPage.durationMs) / 1000) * fps
+  );
 
-    return calculateAnimation({
-      animationType: activeSubtitle.animation || "none",
-      frame,
-      startFrame,
-      endFrame,
-      fps,
-    });
-  }, [activeSubtitle, frame, fps]);
-
-  if (!activeSubtitle || !animationValues) return null;
-
-  // アニメーションスタイルを取得
+  const animationValues = calculateAnimation({
+    animationType,
+    frame,
+    startFrame,
+    endFrame,
+    fps,
+  });
   const animationStyle = getAnimationStyle(animationValues);
 
   const containerStyle: React.CSSProperties = {
@@ -50,42 +60,73 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
     textAlign: "center" as const,
     width: "100%",
     left: 0,
-    top: activeSubtitle.y !== undefined ? activeSubtitle.y : 1600,
+    top: style.y !== undefined ? style.y : 1600,
+    ...animationStyle,
   };
 
-  // 既存のtextShadow と animationStyle.textShadow をマージ
-  const baseTextShadow = `-2px -2px 0 ${
-    activeSubtitle.strokeColor || "#000"
-  }, 2px -2px 0 ${activeSubtitle.strokeColor || "#000"}, -2px 2px 0 ${
-    activeSubtitle.strokeColor || "#000"
-  }, 2px 2px 0 ${activeSubtitle.strokeColor || "#000"}`;
-
-  const textStyle: React.CSSProperties = {
-    fontSize: activeSubtitle.fontSize || 60,
-    fontFamily: `"${activeSubtitle.fontFamily || "Roboto"}", sans-serif`,
-    fontWeight: 900,
-    textTransform: "uppercase" as const,
-    color: activeSubtitle.color || "white",
-    textShadow: animationStyle.textShadow
-      ? `${baseTextShadow}, ${animationStyle.textShadow}`
-      : baseTextShadow,
-    lineHeight: 1.2,
-    // アニメーションのtransformとX位置を組み合わせ
-    transform: [
-      `translateX(${activeSubtitle.x || 0}px)`,
-      animationStyle.transform,
-    ]
-      .filter(Boolean)
-      .join(" "),
-    opacity: animationStyle.opacity,
-    // スムーズなアニメーションのため
-    willChange: "transform, opacity",
-  };
+  // ベースのテキストシャドウ（縁取り）
+  const baseTextShadow = `-3px -3px 0 ${
+    style.strokeColor || "#000"
+  }, 3px -3px 0 ${style.strokeColor || "#000"}, -3px 3px 0 ${
+    style.strokeColor || "#000"
+  }, 3px 3px 0 ${style.strokeColor || "#000"}`;
 
   return (
     <AbsoluteFill className="justify-center items-center pointer-events-none">
       <div style={containerStyle}>
-        <div style={textStyle}>{activeSubtitle.text}</div>
+        <div
+          style={{
+            display: "inline-flex",
+            flexWrap: "wrap",
+            justifyContent: "center",
+            gap: "8px",
+            transform: `translateX(${style.x || 0}px)`,
+          }}
+        >
+          {currentPage.tokens.map((token, index) => {
+            // このトークンがアクティブかどうか
+            const isActive = timeInMs >= token.fromMs && timeInMs < token.toMs;
+            // このトークンが既に過ぎたかどうか
+            const isPast = timeInMs >= token.toMs;
+            // このトークンがまだ来ていないかどうか
+            const isFuture = timeInMs < token.fromMs;
+
+            // アクティブな単語のスケール効果
+            let tokenScale = 1;
+            if (isActive) {
+              // アクティブ時は少し大きく + パルス
+              const activeProgress =
+                (timeInMs - token.fromMs) / (token.toMs - token.fromMs);
+              tokenScale = 1.15 + Math.sin(activeProgress * Math.PI) * 0.1;
+            }
+
+            const tokenStyle: React.CSSProperties = {
+              fontSize: style.fontSize || 60,
+              fontFamily: `"${style.fontFamily || "Roboto"}", sans-serif`,
+              fontWeight: 900,
+              textTransform: "uppercase" as const,
+              // アクティブな単語は黄色、過去は白、未来は半透明
+              color: isActive
+                ? "#FFD700" // ゴールド
+                : isPast
+                ? style.color || "white"
+                : "rgba(255, 255, 255, 0.5)",
+              textShadow: isActive
+                ? `${baseTextShadow}, 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4)`
+                : baseTextShadow,
+              lineHeight: 1.2,
+              transform: `scale(${tokenScale})`,
+              transition: "transform 0.1s ease-out, color 0.1s ease-out",
+              display: "inline-block",
+            };
+
+            return (
+              <span key={index} style={tokenStyle}>
+                {token.text.trim()}
+              </span>
+            );
+          })}
+        </div>
       </div>
     </AbsoluteFill>
   );
