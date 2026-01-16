@@ -16,7 +16,7 @@ import { Subtitle } from "../types/subtitle";
 import { AnimationType } from "../types/animation";
 import { fetchSubtitles } from "../utils/subtitleUtils";
 import { loadGoogleFont } from "../utils/googleFonts";
-import { getPresetById, DEFAULT_PRESET_ID } from "../data/stylePresets";
+import { getPresetById, DEFAULT_PRESET_ID } from "../config/stylePresets";
 
 export const useVideoEditor = () => {
   const [videoPath, setVideoPath] = useState<string | null>(null);

@@ -71,29 +71,32 @@ export const VideoPlayer = ({
   }, [playerRef, setIsPlaying, videoPath]); // videoPath changed means player might re-mount
   return (
     <main className="flex-1 bg-[#111] flex flex-col relative min-h-0">
-      <header className="h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#161616]">
-        <div className="text-sm text-gray-400">
-          {videoFileName || "新規プロジェクト"}
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            disabled={!videoPath || isExporting}
-            onClick={onExport}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
-              videoPath && !isExporting
-                ? "bg-white text-black hover:bg-gray-200 shadow-lg shadow-white/5"
-                : "bg-[#333] text-gray-500 cursor-not-allowed"
-            }`}
-          >
-            {isExporting ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Download size={16} />
-            )}
-            {isExporting ? "出力中..." : "エクスポート"}
-          </button>
-        </div>
-      </header>
+      {/* 動画がある場合のみヘッダーを表示 */}
+      {videoPath && (
+        <header className="h-16 border-b border-[#333] flex items-center justify-between px-6 bg-[#161616]">
+          <div className="text-sm text-gray-400">
+            {videoFileName || "新規プロジェクト"}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              disabled={!videoPath || isExporting}
+              onClick={onExport}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 ${
+                videoPath && !isExporting
+                  ? "bg-white text-black hover:bg-gray-200 shadow-lg shadow-white/5"
+                  : "bg-[#333] text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              {isExporting ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Download size={16} />
+              )}
+              {isExporting ? "出力中..." : "エクスポート"}
+            </button>
+          </div>
+        </header>
+      )}
 
       <div
         className="flex-1 flex items-center justify-center p-8 overflow-hidden relative"
@@ -105,10 +108,10 @@ export const VideoPlayer = ({
         {/* ドロップゾーン（動画がない場合） */}
         {!videoPath && (
           <div
-            className={`w-full max-w-lg aspect-[9/16] border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all ${
+            className={`w-full max-w-lg aspect-[9/16] rounded-2xl flex flex-col items-center justify-center transition-all ${
               isDragging
-                ? "border-blue-500 bg-blue-500/10"
-                : "border-[#444] hover:border-[#555]"
+                ? "border-2 border-dashed border-blue-500 bg-blue-500/10"
+                : ""
             }`}
           >
             {isUploading ? (

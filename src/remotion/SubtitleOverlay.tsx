@@ -12,7 +12,7 @@ import {
   getAnimationStyle,
 } from "@/utils/animations";
 import { useEffect, useMemo } from "react";
-import { getPresetById } from "@/data/stylePresets";
+import { getPresetById } from "@/config/stylePresets";
 
 // 共通のスタイル型
 type TokenStyle = {

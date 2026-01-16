@@ -16,7 +16,7 @@ import { FontPicker } from "./FontPicker";
 import { AnimationType, ANIMATION_PRESETS } from "@/types/animation";
 import { SubtitleEditModal } from "./SubtitleEditModal";
 import { Subtitle } from "@/types/subtitle";
-import { STYLE_PRESETS, getPresetById } from "@/data/stylePresets";
+import { STYLE_PRESETS, getPresetById } from "@/config/stylePresets";
 
 type ProcessingState = {
   status: "idle" | "processing" | "done" | "error";
@@ -107,272 +107,277 @@ export const SubtitlePanel = ({
         onSave={onSubtitlesUpdate}
       />
 
-      <aside className="w-[320px] bg-[#111] border-r border-[#333] flex flex-col">
-        <div className="p-4 flex-1 overflow-y-auto custom-scrollbar space-y-4">
-          {/* 動画が選択されている場合 */}
-          {videoPath && (
-            <>
-              {/* 選択中の動画 */}
-              <div className="bg-[#1a1a1a] rounded-xl p-3 border border-[#333]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-                    <Film size={18} />
+      {/* 動画がある場合のみパネルを表示 */}
+      {videoPath && (
+        <aside className="w-[320px] bg-[#111] border-r border-[#333] flex flex-col">
+          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar space-y-4">
+            {/* 動画が選択されている場合 */}
+            {videoPath && (
+              <>
+                {/* 選択中の動画 */}
+                <div className="bg-[#1a1a1a] rounded-xl p-3 border border-[#333]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                      <Film size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate text-gray-200">
+                        {videoFileName}
+                      </p>
+                      <p className="text-xs text-gray-500">プロジェクト</p>
+                    </div>
+                    <button
+                      onClick={onRemoveVideo}
+                      className="p-1.5 hover:bg-[#333] rounded-lg transition-colors"
+                      aria-label="Remove video"
+                    >
+                      <X size={16} className="text-gray-400" />
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate text-gray-200">
-                      {videoFileName}
-                    </p>
-                    <p className="text-xs text-gray-500">プロジェクト</p>
-                  </div>
-                  <button
-                    onClick={onRemoveVideo}
-                    className="p-1.5 hover:bg-[#333] rounded-lg transition-colors"
-                    aria-label="Remove video"
-                  >
-                    <X size={16} className="text-gray-400" />
-                  </button>
                 </div>
-              </div>
 
-              {/* スタイル設定 (アコーディオン) */}
-              <div className="space-y-2 pt-2">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
-                  Style & Data
-                </h3>
+                {/* スタイル設定 (アコーディオン) */}
+                <div className="space-y-2 pt-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+                    Style & Data
+                  </h3>
 
-                {/* 字幕データ編集 */}
-                <div className="mb-2">
+                  {/* 字幕データ編集 */}
+                  <div className="mb-2">
+                    <CollapsibleSection
+                      title="字幕データ"
+                      icon={Edit}
+                      defaultOpen={true}
+                    >
+                      <button
+                        onClick={() => setIsEditModalOpen(true)}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-medium transition-colors shadow-lg shadow-blue-600/20"
+                      >
+                        字幕内容を編集する
+                      </button>
+                    </CollapsibleSection>
+                  </div>
+
+                  {/* スタイルプリセット */}
                   <CollapsibleSection
-                    title="字幕データ"
-                    icon={Edit}
+                    title="スタイルプリセット"
+                    icon={Layers}
                     defaultOpen={true}
                   >
-                    <button
-                      onClick={() => setIsEditModalOpen(true)}
-                      className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm font-medium transition-colors shadow-lg shadow-blue-600/20"
-                    >
-                      字幕内容を編集する
-                    </button>
+                    <div className="space-y-2">
+                      {STYLE_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() => {
+                            const fullPreset = getPresetById(preset.id);
+                            if (fullPreset) {
+                              onStyleChange({
+                                presetId: preset.id,
+                                fontSize: fullPreset.baseStyle.fontSize,
+                                color: fullPreset.baseStyle.color,
+                                strokeColor: fullPreset.baseStyle.strokeColor,
+                                fontFamily: fullPreset.baseStyle.fontFamily,
+                                animation: fullPreset.animation,
+                              });
+                            }
+                          }}
+                          className={`w-full p-3 rounded-lg text-left transition-all border ${
+                            subtitleStyle.presetId === preset.id
+                              ? "bg-blue-600/20 border-blue-500/50"
+                              : "bg-[#1a1a1a] border-[#333] hover:border-[#444] hover:bg-[#222]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p
+                                className={`text-sm font-medium ${
+                                  subtitleStyle.presetId === preset.id
+                                    ? "text-blue-400"
+                                    : "text-gray-200"
+                                }`}
+                              >
+                                {preset.name}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {preset.description}
+                              </p>
+                            </div>
+                            {/* プレビュー */}
+                            <div className="flex items-baseline gap-0.5">
+                              <span
+                                style={{
+                                  fontFamily: preset.baseStyle.fontFamily,
+                                  fontSize: "10px",
+                                  color: preset.baseStyle.color,
+                                }}
+                              >
+                                say
+                              </span>
+                              <span
+                                style={{
+                                  fontFamily: preset.activeStyle.fontFamily,
+                                  fontSize: "12px",
+                                  color: preset.activeStyle.color,
+                                  fontStyle: preset.activeStyle.italic
+                                    ? "italic"
+                                    : "normal",
+                                }}
+                              >
+                                that
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </CollapsibleSection>
+
+                  {/* アニメーション設定 */}
+                  <CollapsibleSection
+                    title="アニメーション"
+                    icon={Sparkles}
+                    defaultOpen={false}
+                  >
+                    <div className="grid grid-cols-2 gap-2">
+                      {ANIMATION_PRESETS.map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() =>
+                            onStyleChange({ animation: preset.id })
+                          }
+                          className={`flex items-center gap-2 p-2 rounded-lg text-left transition-all ${
+                            subtitleStyle.animation === preset.id
+                              ? "bg-blue-600/20 border border-blue-500/50 text-blue-400"
+                              : "bg-[#222] border border-transparent hover:bg-[#333] text-gray-300"
+                          }`}
+                        >
+                          <span className="text-lg">{preset.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium truncate">
+                              {preset.name}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </CollapsibleSection>
+
+                  {/* フォント設定 */}
+                  <CollapsibleSection title="フォント" icon={Type}>
+                    <FontPicker
+                      selectedFont={subtitleStyle.fontFamily}
+                      onSelect={(font) => onStyleChange({ fontFamily: font })}
+                      className="h-[240px] border-none bg-transparent p-0"
+                    />
+                  </CollapsibleSection>
+
+                  {/* サイズ設定 */}
+                  <CollapsibleSection title="サイズ" icon={Type}>
+                    <div className="space-y-4 pt-2">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">文字の大きさ</span>
+                        <span className="text-blue-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                          {subtitleStyle.fontSize}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={20}
+                        max={150}
+                        step={2}
+                        value={subtitleStyle.fontSize}
+                        onChange={(e) =>
+                          onStyleChange({ fontSize: Number(e.target.value) })
+                        }
+                        className="w-full h-1.5 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500"
+                      />
+                    </div>
+                  </CollapsibleSection>
+
+                  {/* カラー設定 */}
+                  <CollapsibleSection title="カラー" icon={Palette}>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <span className="text-xs text-gray-400 block">
+                          文字色
+                        </span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {[
+                            "#ffffff",
+                            "#ffff00",
+                            "#ff0000",
+                            "#00ff00",
+                            "#00ffff",
+                            "#ff00ff",
+                          ].map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => onStyleChange({ color: c })}
+                              className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 ${
+                                subtitleStyle.color === c
+                                  ? "border-blue-500 scale-110 ring-1 ring-blue-500 ring-offset-1 ring-offset-[#1a1a1a]"
+                                  : "border-transparent"
+                              }`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                          <div className="w-6 h-6 rounded-md overflow-hidden border border-[#444] relative">
+                            <input
+                              type="color"
+                              value={subtitleStyle.color}
+                              onChange={(e) =>
+                                onStyleChange({ color: e.target.value })
+                              }
+                              className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <span className="text-xs text-gray-400 block">
+                          縁取り
+                        </span>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {[
+                            "#000000",
+                            "#333333",
+                            "#666666",
+                            "#ffffff",
+                            "#ff0000",
+                            "#0000ff",
+                          ].map((c) => (
+                            <button
+                              key={c}
+                              onClick={() => onStyleChange({ strokeColor: c })}
+                              className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 ${
+                                subtitleStyle.strokeColor === c
+                                  ? "border-blue-500 scale-110 ring-1 ring-blue-500 ring-offset-1 ring-offset-[#1a1a1a]"
+                                  : "border-transparent"
+                              }`}
+                              style={{ backgroundColor: c }}
+                            />
+                          ))}
+                          <div className="w-6 h-6 rounded-md overflow-hidden border border-[#444] relative">
+                            <input
+                              type="color"
+                              value={subtitleStyle.strokeColor}
+                              onChange={(e) =>
+                                onStyleChange({ strokeColor: e.target.value })
+                              }
+                              className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </CollapsibleSection>
                 </div>
-
-                {/* スタイルプリセット */}
-                <CollapsibleSection
-                  title="スタイルプリセット"
-                  icon={Layers}
-                  defaultOpen={true}
-                >
-                  <div className="space-y-2">
-                    {STYLE_PRESETS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        onClick={() => {
-                          const fullPreset = getPresetById(preset.id);
-                          if (fullPreset) {
-                            onStyleChange({
-                              presetId: preset.id,
-                              fontSize: fullPreset.baseStyle.fontSize,
-                              color: fullPreset.baseStyle.color,
-                              strokeColor: fullPreset.baseStyle.strokeColor,
-                              fontFamily: fullPreset.baseStyle.fontFamily,
-                              animation: fullPreset.animation,
-                            });
-                          }
-                        }}
-                        className={`w-full p-3 rounded-lg text-left transition-all border ${
-                          subtitleStyle.presetId === preset.id
-                            ? "bg-blue-600/20 border-blue-500/50"
-                            : "bg-[#1a1a1a] border-[#333] hover:border-[#444] hover:bg-[#222]"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p
-                              className={`text-sm font-medium ${
-                                subtitleStyle.presetId === preset.id
-                                  ? "text-blue-400"
-                                  : "text-gray-200"
-                              }`}
-                            >
-                              {preset.name}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {preset.description}
-                            </p>
-                          </div>
-                          {/* プレビュー */}
-                          <div className="flex items-baseline gap-0.5">
-                            <span
-                              style={{
-                                fontFamily: preset.baseStyle.fontFamily,
-                                fontSize: "10px",
-                                color: preset.baseStyle.color,
-                              }}
-                            >
-                              say
-                            </span>
-                            <span
-                              style={{
-                                fontFamily: preset.activeStyle.fontFamily,
-                                fontSize: "12px",
-                                color: preset.activeStyle.color,
-                                fontStyle: preset.activeStyle.italic
-                                  ? "italic"
-                                  : "normal",
-                              }}
-                            >
-                              that
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-
-                {/* アニメーション設定 */}
-                <CollapsibleSection
-                  title="アニメーション"
-                  icon={Sparkles}
-                  defaultOpen={false}
-                >
-                  <div className="grid grid-cols-2 gap-2">
-                    {ANIMATION_PRESETS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        onClick={() => onStyleChange({ animation: preset.id })}
-                        className={`flex items-center gap-2 p-2 rounded-lg text-left transition-all ${
-                          subtitleStyle.animation === preset.id
-                            ? "bg-blue-600/20 border border-blue-500/50 text-blue-400"
-                            : "bg-[#222] border border-transparent hover:bg-[#333] text-gray-300"
-                        }`}
-                      >
-                        <span className="text-lg">{preset.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium truncate">
-                            {preset.name}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </CollapsibleSection>
-
-                {/* フォント設定 */}
-                <CollapsibleSection title="フォント" icon={Type}>
-                  <FontPicker
-                    selectedFont={subtitleStyle.fontFamily}
-                    onSelect={(font) => onStyleChange({ fontFamily: font })}
-                    className="h-[240px] border-none bg-transparent p-0"
-                  />
-                </CollapsibleSection>
-
-                {/* サイズ設定 */}
-                <CollapsibleSection title="サイズ" icon={Type}>
-                  <div className="space-y-4 pt-2">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-400">文字の大きさ</span>
-                      <span className="text-blue-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                        {subtitleStyle.fontSize}px
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={20}
-                      max={150}
-                      step={2}
-                      value={subtitleStyle.fontSize}
-                      onChange={(e) =>
-                        onStyleChange({ fontSize: Number(e.target.value) })
-                      }
-                      className="w-full h-1.5 bg-[#333] rounded-lg appearance-none cursor-pointer accent-blue-500"
-                    />
-                  </div>
-                </CollapsibleSection>
-
-                {/* カラー設定 */}
-                <CollapsibleSection title="カラー" icon={Palette}>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <span className="text-xs text-gray-400 block">
-                        文字色
-                      </span>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {[
-                          "#ffffff",
-                          "#ffff00",
-                          "#ff0000",
-                          "#00ff00",
-                          "#00ffff",
-                          "#ff00ff",
-                        ].map((c) => (
-                          <button
-                            key={c}
-                            onClick={() => onStyleChange({ color: c })}
-                            className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 ${
-                              subtitleStyle.color === c
-                                ? "border-blue-500 scale-110 ring-1 ring-blue-500 ring-offset-1 ring-offset-[#1a1a1a]"
-                                : "border-transparent"
-                            }`}
-                            style={{ backgroundColor: c }}
-                          />
-                        ))}
-                        <div className="w-6 h-6 rounded-md overflow-hidden border border-[#444] relative">
-                          <input
-                            type="color"
-                            value={subtitleStyle.color}
-                            onChange={(e) =>
-                              onStyleChange({ color: e.target.value })
-                            }
-                            className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <span className="text-xs text-gray-400 block">
-                        縁取り
-                      </span>
-                      <div className="flex gap-1.5 flex-wrap">
-                        {[
-                          "#000000",
-                          "#333333",
-                          "#666666",
-                          "#ffffff",
-                          "#ff0000",
-                          "#0000ff",
-                        ].map((c) => (
-                          <button
-                            key={c}
-                            onClick={() => onStyleChange({ strokeColor: c })}
-                            className={`w-6 h-6 rounded-md border transition-transform hover:scale-110 ${
-                              subtitleStyle.strokeColor === c
-                                ? "border-blue-500 scale-110 ring-1 ring-blue-500 ring-offset-1 ring-offset-[#1a1a1a]"
-                                : "border-transparent"
-                            }`}
-                            style={{ backgroundColor: c }}
-                          />
-                        ))}
-                        <div className="w-6 h-6 rounded-md overflow-hidden border border-[#444] relative">
-                          <input
-                            type="color"
-                            value={subtitleStyle.strokeColor}
-                            onChange={(e) =>
-                              onStyleChange({ strokeColor: e.target.value })
-                            }
-                            className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CollapsibleSection>
-              </div>
-            </>
-          )}
-        </div>
-      </aside>
+              </>
+            )}
+          </div>
+        </aside>
+      )}
     </>
   );
 };
