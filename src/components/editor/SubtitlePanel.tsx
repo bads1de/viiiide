@@ -90,7 +90,9 @@ const CollapsibleSection = ({
 export const SubtitlePanel = ({
   videoPath,
   videoFileName,
+  processingState,
   onRemoveVideo,
+  onGenerateSubtitles,
   subtitles,
   onSubtitlesUpdate,
   subtitleStyle,
@@ -134,6 +136,56 @@ export const SubtitlePanel = ({
                       <X size={16} className="text-gray-400" />
                     </button>
                   </div>
+                </div>
+
+                {/* AI字幕生成ボタン */}
+                <div className="space-y-2">
+                  <button
+                    onClick={onGenerateSubtitles}
+                    disabled={processingState.status === "processing"}
+                    className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all font-medium ${
+                      processingState.status === "processing"
+                        ? "bg-[#222] text-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20"
+                    }`}
+                  >
+                    <Sparkles
+                      size={18}
+                      className={
+                        processingState.status === "processing"
+                          ? "animate-spin"
+                          : ""
+                      }
+                    />
+                    <span>
+                      {processingState.status === "processing"
+                        ? "生成中..."
+                        : "AI字幕生成"}
+                    </span>
+                  </button>
+
+                  {/* 進捗表示 */}
+                  {processingState.status === "processing" && (
+                    <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#333] space-y-2">
+                      <div className="flex justify-between text-xs text-gray-400">
+                        <span>{processingState.message}</span>
+                        <span>{Math.round(processingState.progress)}%</span>
+                      </div>
+                      <div className="h-1.5 bg-[#333] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-500 transition-all duration-300 rounded-full"
+                          style={{ width: `${processingState.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* エラー表示 */}
+                  {processingState.status === "error" && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-xs text-center">
+                      {processingState.message}
+                    </div>
+                  )}
                 </div>
 
                 {/* スタイル設定 (アコーディオン) */}

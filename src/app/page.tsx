@@ -42,6 +42,7 @@ export default function Home() {
     activeSessionId,
     isLibraryLoading,
     loadSession,
+    deleteSession,
   } = useVideoEditor();
 
   return (
@@ -50,6 +51,7 @@ export default function Home() {
         sessions={sessions}
         activeSessionId={activeSessionId}
         onLoadSession={loadSession}
+        onDeleteSession={deleteSession}
         isLoading={isLibraryLoading}
       />
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Folder, Film, Clock, Play } from "lucide-react";
+import { Folder, Film, Clock, Play, Trash2 } from "lucide-react";
 
 type Session = {
   id: string;
@@ -14,6 +14,7 @@ type ProjectLibraryProps = {
   sessions: Session[];
   activeSessionId?: string | null;
   onLoadSession: (session: Session) => void;
+  onDeleteSession: (sessionId: string) => void;
   isLoading?: boolean;
 };
 
@@ -21,6 +22,7 @@ export const ProjectLibrary = ({
   sessions,
   activeSessionId,
   onLoadSession,
+  onDeleteSession,
   isLoading,
 }: ProjectLibraryProps) => {
   return (
@@ -54,50 +56,65 @@ export const ProjectLibrary = ({
           </div>
         ) : (
           sessions.map((session) => (
-            <button
+            <div
               key={session.id}
-              onClick={() => onLoadSession(session)}
-              className={`w-full group text-left p-3 rounded-xl border transition-all duration-200 ${
+              className={`relative w-full group text-left p-3 rounded-xl border transition-all duration-200 ${
                 activeSessionId === session.id
                   ? "bg-blue-600/10 border-blue-500/50 ring-1 ring-blue-500/20"
                   : "bg-[#1a1a1a] border-[#333] hover:border-[#444] hover:bg-[#222]"
               }`}
             >
-              <div className="relative aspect-video mb-2 rounded-lg bg-black overflow-hidden flex items-center justify-center border border-[#333]">
-                <Film
-                  size={24}
-                  className="text-gray-700 group-hover:text-gray-500 transition-colors"
-                />
-                {activeSessionId === session.id && (
-                  <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center">
-                    <Play size={20} className="text-blue-400 fill-blue-400" />
-                  </div>
-                )}
-                {session.hasSubtitles && (
-                  <div className="absolute bottom-1 right-1 bg-emerald-500/80 text-[8px] font-bold text-white px-1 rounded uppercase tracking-tighter">
-                    Subtitles
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <p
-                  className={`text-sm font-semibold truncate ${
-                    activeSessionId === session.id
-                      ? "text-blue-400"
-                      : "text-gray-200"
-                  }`}
-                >
-                  {session.originalName}
-                </p>
-                <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                  <Clock size={10} />
-                  <span>
-                    {new Date(session.createdAt).toLocaleDateString()}
-                  </span>
+              <button
+                onClick={() => onLoadSession(session)}
+                className="w-full text-left"
+              >
+                <div className="relative aspect-video mb-2 rounded-lg bg-black overflow-hidden flex items-center justify-center border border-[#333]">
+                  <Film
+                    size={24}
+                    className="text-gray-700 group-hover:text-gray-500 transition-colors"
+                  />
+                  {activeSessionId === session.id && (
+                    <div className="absolute inset-0 bg-blue-500/10 flex items-center justify-center">
+                      <Play size={20} className="text-blue-400 fill-blue-400" />
+                    </div>
+                  )}
+                  {session.hasSubtitles && (
+                    <div className="absolute bottom-1 right-1 bg-emerald-500/80 text-[8px] font-bold text-white px-1 rounded uppercase tracking-tighter">
+                      Subtitles
+                    </div>
+                  )}
                 </div>
-              </div>
-            </button>
+
+                <div className="space-y-1">
+                  <p
+                    className={`text-sm font-semibold truncate ${
+                      activeSessionId === session.id
+                        ? "text-blue-400"
+                        : "text-gray-200"
+                    }`}
+                  >
+                    {session.originalName}
+                  </p>
+                  <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                    <Clock size={10} />
+                    <span>
+                      {new Date(session.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteSession(session.id);
+                }}
+                className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-lg opacity-0 group-hover:opacity-100 transition-all backdrop-blur-sm"
+                title="削除"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
           ))
         )}
       </div>

@@ -412,6 +412,39 @@ export const useVideoEditor = () => {
     }
   };
 
+  const deleteSession = useCallback(
+    async (sessionId: string) => {
+      if (
+        !confirm(
+          "本当にこのプロジェクトを削除しますか？\nこの操作は取り消せません。"
+        )
+      ) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/sessions/${sessionId}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete session");
+        }
+
+        // アクティブなセッションを削除した場合はリセット
+        if (activeSessionId === sessionId) {
+          handleRemoveVideo();
+        }
+
+        await fetchSessions();
+      } catch (error) {
+        console.error("Failed to delete session:", error);
+        alert("プロジェクトの削除に失敗しました");
+      }
+    },
+    [activeSessionId, fetchSessions]
+  );
+
   return {
     videoPath,
     videoFileName,
@@ -449,5 +482,6 @@ export const useVideoEditor = () => {
     activeSessionId,
     isLibraryLoading,
     loadSession,
+    deleteSession,
   };
 };
