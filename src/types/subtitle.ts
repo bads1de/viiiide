@@ -11,4 +11,5 @@ export type Subtitle = {
   strokeColor?: string;
   fontFamily?: string;
   animation?: AnimationType;
+  presetId?: string;
 };

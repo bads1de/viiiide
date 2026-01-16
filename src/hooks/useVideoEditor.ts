@@ -14,6 +14,7 @@ import { Subtitle } from "../types/subtitle";
 import { AnimationType } from "../types/animation";
 import { fetchSubtitles } from "../utils/subtitleUtils";
 import { loadGoogleFont } from "../utils/googleFonts";
+import { getPresetById, DEFAULT_PRESET_ID } from "../data/stylePresets";
 
 export const useVideoEditor = () => {
   const [videoPath, setVideoPath] = useState<string | null>(null);
@@ -35,11 +36,12 @@ export const useVideoEditor = () => {
   }>({ status: "idle", message: "", progress: 0 });
   const [subtitlePosition, setSubtitlePosition] = useState({ x: 0, y: 1600 });
   const [subtitleStyle, setSubtitleStyle] = useState({
+    presetId: DEFAULT_PRESET_ID,
     fontSize: 60,
     color: "#ffffff",
     strokeColor: "#000000",
     fontFamily: "Roboto",
-    animation: "pulse" as AnimationType,
+    animation: "karaoke" as AnimationType,
   });
 
   const playerRef = useRef<PlayerRef>(null) as RefObject<PlayerRef>;

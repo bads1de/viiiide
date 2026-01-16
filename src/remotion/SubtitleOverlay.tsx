@@ -1,5 +1,10 @@
 import { Subtitle } from "@/types/subtitle";
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  interpolate,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import { loadGoogleFont } from "@/utils/googleFonts";
 import {
   createCaptionPages,
@@ -7,6 +12,18 @@ import {
   getAnimationStyle,
 } from "@/utils/animations";
 import { useEffect, useMemo } from "react";
+import { getPresetById } from "@/data/stylePresets";
+
+// 共通のスタイル型
+type TokenStyle = {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  strokeColor: string;
+  fontWeight: number;
+  italic?: boolean;
+  textShadow?: string;
+};
 
 export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   const frame = useCurrentFrame();
@@ -16,7 +33,7 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   // TikTok スタイルのページを生成
   const pages = useMemo(() => {
     if (subtitles.length === 0) return [];
-    return createCaptionPages(subtitles, 1200); // 1.2秒で単語をグループ化
+    return createCaptionPages(subtitles, 1200);
   }, [subtitles]);
 
   // 現在のページを取得
@@ -28,15 +45,28 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   }, [pages, timeInMs]);
 
   // スタイル情報を最初の字幕から取得
-  const style = subtitles[0] || {};
-  const animationType = style.animation || "karaoke";
+  const subtitleData = subtitles[0] || {};
+
+  // プリセットを取得
+  const preset = useMemo(() => {
+    const presetId = subtitleData.presetId;
+    return presetId ? getPresetById(presetId) : null;
+  }, [subtitleData]);
+
+  const animationType =
+    subtitleData.animation || preset?.animation || "karaoke";
 
   // フォントをロード
   useEffect(() => {
-    if (style.fontFamily) {
-      loadGoogleFont(style.fontFamily);
+    if (preset) {
+      loadGoogleFont(preset.baseStyle.fontFamily);
+      if (preset.activeStyle.fontFamily !== preset.baseStyle.fontFamily) {
+        loadGoogleFont(preset.activeStyle.fontFamily);
+      }
+    } else if (subtitleData.fontFamily) {
+      loadGoogleFont(subtitleData.fontFamily);
     }
-  }, [style.fontFamily]);
+  }, [preset, subtitleData.fontFamily]);
 
   if (!currentPage) return null;
 
@@ -60,16 +90,38 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
     textAlign: "center" as const,
     width: "100%",
     left: 0,
-    top: style.y !== undefined ? style.y : 1600,
+    top: subtitleData.y !== undefined ? subtitleData.y : 1600,
     ...animationStyle,
   };
 
-  // ベースのテキストシャドウ（縁取り）
-  const baseTextShadow = `-3px -3px 0 ${
-    style.strokeColor || "#000"
-  }, 3px -3px 0 ${style.strokeColor || "#000"}, -3px 3px 0 ${
-    style.strokeColor || "#000"
-  }, 3px 3px 0 ${style.strokeColor || "#000"}`;
+  // ベース/アクティブスタイルを決定
+  const baseStyle: TokenStyle = {
+    fontFamily:
+      preset?.baseStyle.fontFamily || subtitleData.fontFamily || "Roboto",
+    fontSize: preset?.baseStyle.fontSize || subtitleData.fontSize || 60,
+    color: preset?.baseStyle.color || subtitleData.color || "#FFFFFF",
+    strokeColor:
+      preset?.baseStyle.strokeColor || subtitleData.strokeColor || "#000000",
+    fontWeight: preset?.baseStyle.fontWeight || 700,
+    italic: preset?.baseStyle.italic,
+  };
+
+  const activeStyle: TokenStyle = {
+    fontFamily:
+      preset?.activeStyle.fontFamily || subtitleData.fontFamily || "Roboto",
+    fontSize:
+      preset?.activeStyle.fontSize || (subtitleData.fontSize || 60) * 1.2,
+    color: preset?.activeStyle.color || "#FFD700",
+    strokeColor: preset?.activeStyle.strokeColor || baseStyle.strokeColor,
+    fontWeight: preset?.activeStyle.fontWeight || 900,
+    italic: preset?.activeStyle.italic,
+    textShadow:
+      preset?.activeStyle.textShadow || "0 0 20px rgba(255, 215, 0, 0.8)",
+  };
+
+  // ベースのテキストシャドウ（縁取り）を作成
+  const createStroke = (color: string) =>
+    `-3px -3px 0 ${color}, 3px -3px 0 ${color}, -3px 3px 0 ${color}, 3px 3px 0 ${color}`;
 
   return (
     <AbsoluteFill className="justify-center items-center pointer-events-none">
@@ -80,48 +132,74 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
             flexWrap: "wrap",
             justifyContent: "center",
             gap: "8px",
-            transform: `translateX(${style.x || 0}px)`,
+            transform: `translateX(${subtitleData.x || 0}px)`,
           }}
         >
           {currentPage.tokens.map((token, index) => {
-            // このトークンがアクティブかどうか
             const isActive = timeInMs >= token.fromMs && timeInMs < token.toMs;
-            // このトークンが既に過ぎたかどうか
             const isPast = timeInMs >= token.toMs;
-            // このトークンがまだ来ていないかどうか
             const isFuture = timeInMs < token.fromMs;
 
-            // アクティブな単語のスケール効果
             let tokenScale = 1;
-            if (isActive) {
-              // アクティブ時は少し大きく + パルス
-              const activeProgress =
-                (timeInMs - token.fromMs) / (token.toMs - token.fromMs);
-              tokenScale = 1.15 + Math.sin(activeProgress * Math.PI) * 0.1;
+            let tokenOpacity = 1;
+            let currentStyle: TokenStyle = baseStyle;
+            let tokenTextShadow = createStroke(baseStyle.strokeColor);
+
+            if (animationType === "elastic") {
+              if (isFuture) {
+                tokenScale = 0;
+                tokenOpacity = 0;
+              } else if (isActive) {
+                const timeSinceStart = timeInMs - token.fromMs;
+                tokenScale = interpolate(
+                  timeSinceStart,
+                  [0, 150, 250],
+                  [0, 1.3, 1.1],
+                  { extrapolateRight: "clamp" }
+                );
+                currentStyle = activeStyle;
+                tokenTextShadow = `${createStroke(activeStyle.strokeColor)}${
+                  activeStyle.textShadow ? `, ${activeStyle.textShadow}` : ""
+                }`;
+              } else {
+                tokenScale = 1;
+                currentStyle = baseStyle;
+              }
+            } else {
+              // デフォルトのカラオケスタイル
+              if (isActive) {
+                currentStyle = activeStyle;
+                tokenTextShadow = `${createStroke(activeStyle.strokeColor)}${
+                  activeStyle.textShadow ? `, ${activeStyle.textShadow}` : ""
+                }`;
+                const activeProgress =
+                  (timeInMs - token.fromMs) / (token.toMs - token.fromMs);
+                tokenScale = 1.1 + Math.sin(activeProgress * Math.PI) * 0.1;
+              } else if (isFuture) {
+                tokenOpacity = 0.5;
+              }
             }
 
-            const tokenStyle: React.CSSProperties = {
-              fontSize: style.fontSize || 60,
-              fontFamily: `"${style.fontFamily || "Roboto"}", sans-serif`,
-              fontWeight: 900,
+            const tokenStyleCSS: React.CSSProperties = {
+              fontSize: currentStyle.fontSize,
+              fontFamily: `"${currentStyle.fontFamily}", sans-serif`,
+              fontWeight: currentStyle.fontWeight,
+              fontStyle: currentStyle.italic ? "italic" : "normal",
               textTransform: "uppercase" as const,
-              // アクティブな単語は黄色、過去は白、未来は半透明
-              color: isActive
-                ? "#FFD700" // ゴールド
-                : isPast
-                ? style.color || "white"
-                : "rgba(255, 255, 255, 0.5)",
-              textShadow: isActive
-                ? `${baseTextShadow}, 0 0 30px rgba(255, 215, 0, 0.8), 0 0 60px rgba(255, 215, 0, 0.4)`
-                : baseTextShadow,
+              color: currentStyle.color,
+              textShadow: tokenTextShadow,
               lineHeight: 1.2,
               transform: `scale(${tokenScale})`,
-              transition: "transform 0.1s ease-out, color 0.1s ease-out",
+              opacity: tokenOpacity,
+              transition:
+                animationType === "elastic"
+                  ? "none"
+                  : "transform 0.1s ease-out, color 0.1s ease-out",
               display: "inline-block",
             };
 
             return (
-              <span key={index} style={tokenStyle}>
+              <span key={index} style={tokenStyleCSS}>
                 {token.text.trim()}
               </span>
             );

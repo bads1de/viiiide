@@ -14,12 +14,14 @@ import {
   ChevronRight,
   Sparkles,
   Edit,
+  Layers,
 } from "lucide-react";
 import { useState } from "react";
 import { FontPicker } from "./FontPicker";
 import { AnimationType, ANIMATION_PRESETS } from "@/types/animation";
 import { SubtitleEditModal } from "./SubtitleEditModal";
 import { Subtitle } from "@/types/subtitle";
+import { STYLE_PRESETS, getPresetById } from "@/data/stylePresets";
 
 type ProcessingState = {
   status: "idle" | "processing" | "done" | "error";
@@ -36,6 +38,7 @@ type SubtitlePanelProps = {
   subtitles: Subtitle[];
   onSubtitlesUpdate: (newSubtitles: Subtitle[]) => void;
   subtitleStyle: {
+    presetId?: string;
     fontSize: number;
     color: string;
     strokeColor: string;
@@ -44,6 +47,7 @@ type SubtitlePanelProps = {
   };
   onStyleChange: (
     style: Partial<{
+      presetId: string;
       fontSize: number;
       color: string;
       strokeColor: string;
@@ -240,11 +244,85 @@ export const SubtitlePanel = ({
                   </CollapsibleSection>
                 </div>
 
+                {/* スタイルプリセット */}
+                <CollapsibleSection
+                  title="スタイルプリセット"
+                  icon={Layers}
+                  defaultOpen={true}
+                >
+                  <div className="space-y-2">
+                    {STYLE_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        onClick={() => {
+                          const fullPreset = getPresetById(preset.id);
+                          if (fullPreset) {
+                            onStyleChange({
+                              presetId: preset.id,
+                              fontSize: fullPreset.baseStyle.fontSize,
+                              color: fullPreset.baseStyle.color,
+                              strokeColor: fullPreset.baseStyle.strokeColor,
+                              fontFamily: fullPreset.baseStyle.fontFamily,
+                              animation: fullPreset.animation,
+                            });
+                          }
+                        }}
+                        className={`w-full p-3 rounded-lg text-left transition-all border ${
+                          subtitleStyle.presetId === preset.id
+                            ? "bg-blue-600/20 border-blue-500/50"
+                            : "bg-[#1a1a1a] border-[#333] hover:border-[#444] hover:bg-[#222]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p
+                              className={`text-sm font-medium ${
+                                subtitleStyle.presetId === preset.id
+                                  ? "text-blue-400"
+                                  : "text-gray-200"
+                              }`}
+                            >
+                              {preset.name}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {preset.description}
+                            </p>
+                          </div>
+                          {/* プレビュー */}
+                          <div className="flex items-baseline gap-0.5">
+                            <span
+                              style={{
+                                fontFamily: preset.baseStyle.fontFamily,
+                                fontSize: "10px",
+                                color: preset.baseStyle.color,
+                              }}
+                            >
+                              say
+                            </span>
+                            <span
+                              style={{
+                                fontFamily: preset.activeStyle.fontFamily,
+                                fontSize: "12px",
+                                color: preset.activeStyle.color,
+                                fontStyle: preset.activeStyle.italic
+                                  ? "italic"
+                                  : "normal",
+                              }}
+                            >
+                              that
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CollapsibleSection>
+
                 {/* アニメーション設定 */}
                 <CollapsibleSection
                   title="アニメーション"
                   icon={Sparkles}
-                  defaultOpen={true}
+                  defaultOpen={false}
                 >
                   <div className="grid grid-cols-2 gap-2">
                     {ANIMATION_PRESETS.map((preset) => (

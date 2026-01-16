@@ -17,7 +17,8 @@ export type AnimationType =
   | "neon" // ネオン効果
   | "typewriter" // タイプライター
   | "wave" // 波打つ効果
-  | "zoom"; // ズームイン
+  | "zoom" // ズームイン
+  | "elastic"; // 弾力のあるポップ
 
 // アニメーションプリセットの定義
 export interface AnimationPreset {
@@ -34,6 +35,12 @@ export const ANIMATION_PRESETS: AnimationPreset[] = [
     name: "なし",
     description: "静止テキスト",
     icon: "—",
+  },
+  {
+    id: "elastic",
+    name: "Elastic Pop",
+    description: "弾むようなポップ強調",
+    icon: "💥",
   },
   {
     id: "karaoke",
