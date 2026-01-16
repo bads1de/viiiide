@@ -12,9 +12,11 @@ import {
   PaintBucket,
   ChevronDown,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { FontPicker } from "./FontPicker";
+import { AnimationType, ANIMATION_PRESETS } from "@/types/animation";
 
 type ProcessingState = {
   status: "idle" | "processing" | "done" | "error";
@@ -33,6 +35,7 @@ type SubtitlePanelProps = {
     color: string;
     strokeColor: string;
     fontFamily: string;
+    animation: AnimationType;
   };
   onStyleChange: (
     style: Partial<{
@@ -40,6 +43,7 @@ type SubtitlePanelProps = {
       color: string;
       strokeColor: string;
       fontFamily: string;
+      animation: AnimationType;
     }>
   ) => void;
 };
@@ -207,12 +211,36 @@ export const SubtitlePanel = ({
                 Style Settings
               </h3>
 
-              {/* フォント設定 */}
+              {/* アニメーション設定 */}
               <CollapsibleSection
-                title="フォント"
-                icon={Type}
+                title="アニメーション"
+                icon={Sparkles}
                 defaultOpen={true}
               >
+                <div className="grid grid-cols-2 gap-2">
+                  {ANIMATION_PRESETS.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => onStyleChange({ animation: preset.id })}
+                      className={`flex items-center gap-2 p-2 rounded-lg text-left transition-all ${
+                        subtitleStyle.animation === preset.id
+                          ? "bg-blue-600/20 border border-blue-500/50 text-blue-400"
+                          : "bg-[#222] border border-transparent hover:bg-[#333] text-gray-300"
+                      }`}
+                    >
+                      <span className="text-lg">{preset.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">
+                          {preset.name}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CollapsibleSection>
+
+              {/* フォント設定 */}
+              <CollapsibleSection title="フォント" icon={Type}>
                 <FontPicker
                   selectedFont={subtitleStyle.fontFamily}
                   onSelect={(font) => onStyleChange({ fontFamily: font })}

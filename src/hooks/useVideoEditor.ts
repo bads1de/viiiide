@@ -11,6 +11,7 @@ import { PlayerRef } from "@remotion/player";
 import { TimelineState } from "@xzdarcy/react-timeline-editor";
 import { extractFrames } from "@remotion/webcodecs";
 import { Subtitle } from "../types/subtitle";
+import { AnimationType } from "../types/animation";
 import { fetchSubtitles } from "../utils/subtitleUtils";
 import { loadGoogleFont } from "../utils/googleFonts";
 
@@ -38,6 +39,7 @@ export const useVideoEditor = () => {
     color: "#ffffff",
     strokeColor: "#000000",
     fontFamily: "Roboto",
+    animation: "pulse" as AnimationType,
   });
 
   const playerRef = useRef<PlayerRef>(null) as RefObject<PlayerRef>;

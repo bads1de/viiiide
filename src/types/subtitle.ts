@@ -1,3 +1,5 @@
+import { AnimationType } from "./animation";
+
 export type Subtitle = {
   text: string;
   startInMs: number;
@@ -8,4 +10,5 @@ export type Subtitle = {
   fontSize?: number;
   strokeColor?: string;
   fontFamily?: string;
+  animation?: AnimationType;
 };
