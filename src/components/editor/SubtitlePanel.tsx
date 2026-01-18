@@ -10,11 +10,13 @@ import {
   Sparkles,
   Edit,
   Layers,
+  Music2,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FontPicker } from "./FontPicker";
 import { AnimationType, ANIMATION_PRESETS } from "@/types/animation";
 import { SubtitleEditModal } from "./SubtitleEditModal";
+import { AIProcessingModal } from "./AIProcessingModal";
 import { Subtitle } from "@/types/subtitle";
 import { STYLE_PRESETS, getPresetById } from "@/config/stylePresets";
 
@@ -28,8 +30,11 @@ type SubtitlePanelProps = {
   videoPath: string | null;
   videoFileName: string | null;
   processingState: ProcessingState;
+  separationState: ProcessingState;
+  hasSeparatedAudio: boolean;
   onRemoveVideo: () => void;
-  onGenerateSubtitles: () => void;
+  onGenerateSubtitles: (useVocalsOnly?: boolean) => void;
+  onSeparateVocals: () => void;
   subtitles: Subtitle[];
   onSubtitlesUpdate: (newSubtitles: Subtitle[]) => void;
   subtitleStyle: {
@@ -48,7 +53,7 @@ type SubtitlePanelProps = {
       strokeColor: string;
       fontFamily: string;
       animation: AnimationType;
-    }>
+    }>,
   ) => void;
 };
 
@@ -91,14 +96,46 @@ export const SubtitlePanel = ({
   videoPath,
   videoFileName,
   processingState,
+  separationState,
+  hasSeparatedAudio,
   onRemoveVideo,
   onGenerateSubtitles,
+  onSeparateVocals,
   subtitles,
   onSubtitlesUpdate,
   subtitleStyle,
   onStyleChange,
 }: SubtitlePanelProps) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [pendingSubtitleGen, setPendingSubtitleGen] = useState(false);
+
+  // ボーカル分離完了後に字幕生成を自動実行するチェーン処理
+  // Chaining process to automatically execute subtitle generation after vocal separation completes
+  useEffect(() => {
+    if (separationState.status === "done" && pendingSubtitleGen) {
+      onGenerateSubtitles(true);
+      setPendingSubtitleGen(false);
+    } else if (separationState.status === "error" && pendingSubtitleGen) {
+      setPendingSubtitleGen(false);
+    }
+  }, [separationState.status, pendingSubtitleGen, onGenerateSubtitles]);
+
+  const handleAIRun = ({
+    separateVocals,
+    generateSubtitles,
+  }: {
+    separateVocals: boolean;
+    generateSubtitles: boolean;
+  }) => {
+    if (separateVocals) {
+      onSeparateVocals();
+      setPendingSubtitleGen(generateSubtitles);
+    } else if (generateSubtitles) {
+      // 分離済み音声があるならそれを使用、なければ通常生成
+      onGenerateSubtitles(hasSeparatedAudio);
+    }
+  };
 
   return (
     <>
@@ -107,6 +144,17 @@ export const SubtitlePanel = ({
         onClose={() => setIsEditModalOpen(false)}
         subtitles={subtitles}
         onSave={onSubtitlesUpdate}
+      />
+
+      <AIProcessingModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        onRun={handleAIRun}
+        isProcessing={
+          processingState.status === "processing" ||
+          separationState.status === "processing"
+        }
+        hasSeparatedAudio={hasSeparatedAudio}
       />
 
       {/* 動画がある場合のみパネルを表示 */}
@@ -138,37 +186,67 @@ export const SubtitlePanel = ({
                   </div>
                 </div>
 
-                {/* AI字幕生成ボタン */}
+                {/* AI Processing Unified Section */}
                 <div className="space-y-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
+                    AI Processing
+                  </h3>
+
                   <button
-                    onClick={onGenerateSubtitles}
-                    disabled={processingState.status === "processing"}
+                    onClick={() => setIsAIModalOpen(true)}
+                    disabled={
+                      processingState.status === "processing" ||
+                      separationState.status === "processing"
+                    }
                     className={`w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all font-medium ${
-                      processingState.status === "processing"
+                      processingState.status === "processing" ||
+                      separationState.status === "processing"
                         ? "bg-[#222] text-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg shadow-indigo-500/20"
+                        : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"
                     }`}
                   >
                     <Sparkles
                       size={18}
                       className={
-                        processingState.status === "processing"
+                        processingState.status === "processing" ||
+                        separationState.status === "processing"
                           ? "animate-spin"
                           : ""
                       }
                     />
                     <span>
-                      {processingState.status === "processing"
-                        ? "生成中..."
-                        : "AI字幕生成"}
+                      {processingState.status === "processing" ||
+                      separationState.status === "processing"
+                        ? "AI処理実行中..."
+                        : "AI自動生成・編集"}
                     </span>
                   </button>
 
-                  {/* 進捗表示 */}
+                  {/* Processing Status: Vocal Separation */}
+                  {separationState.status === "processing" && (
+                    <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#333] space-y-2">
+                      <div className="flex justify-between text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Music2 size={12} /> {separationState.message}
+                        </span>
+                        <span>{Math.round(separationState.progress)}%</span>
+                      </div>
+                      <div className="h-1.5 bg-[#333] rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-pink-500 transition-all duration-300 rounded-full"
+                          style={{ width: `${separationState.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Processing Status: Subtitles */}
                   {processingState.status === "processing" && (
                     <div className="bg-[#1a1a1a] rounded-lg p-3 border border-[#333] space-y-2">
                       <div className="flex justify-between text-xs text-gray-400">
-                        <span>{processingState.message}</span>
+                        <span className="flex items-center gap-1">
+                          <Type size={12} /> {processingState.message}
+                        </span>
                         <span>{Math.round(processingState.progress)}%</span>
                       </div>
                       <div className="h-1.5 bg-[#333] rounded-full overflow-hidden">
@@ -180,10 +258,11 @@ export const SubtitlePanel = ({
                     </div>
                   )}
 
-                  {/* エラー表示 */}
-                  {processingState.status === "error" && (
+                  {/* Errors */}
+                  {(separationState.status === "error" ||
+                    processingState.status === "error") && (
                     <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 text-red-400 text-xs text-center">
-                      {processingState.message}
+                      エラーが発生しました。もう一度お試しください。
                     </div>
                   )}
                 </div>

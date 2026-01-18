@@ -45,3 +45,10 @@ whisper.cpp/
 temp/
 public/uploads/
 public/sessions/
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+

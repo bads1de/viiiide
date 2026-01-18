@@ -36,6 +36,12 @@ export const useVideoEditor = () => {
     message: string;
     progress: number;
   }>({ status: "idle", message: "", progress: 0 });
+  const [separationState, setSeparationState] = useState<{
+    status: "idle" | "processing" | "done" | "error";
+    message: string;
+    progress: number;
+  }>({ status: "idle", message: "", progress: 0 });
+  const [hasSeparatedAudio, setHasSeparatedAudio] = useState(false);
   const [subtitlePosition, setSubtitlePosition] = useState({ x: 0, y: 1600 });
   const [subtitleStyle, setSubtitleStyle] = useState({
     presetId: DEFAULT_PRESET_ID,
@@ -192,6 +198,12 @@ export const useVideoEditor = () => {
         message: session.hasSubtitles ? "字幕生成済み" : "",
         progress: session.hasSubtitles ? 100 : 0,
       });
+      setHasSeparatedAudio(session.hasSeparatedAudio || false);
+      setSeparationState({
+        status: session.hasSeparatedAudio ? "done" : "idle",
+        message: session.hasSeparatedAudio ? "ボーカル分離済み" : "",
+        progress: session.hasSeparatedAudio ? 100 : 0,
+      });
 
       // 字幕の読み込みを試行
       const subs = await fetchSubtitles(session.videoPath);
@@ -201,7 +213,7 @@ export const useVideoEditor = () => {
             ...s,
             ...subtitlePosition,
             ...subtitleStyle,
-          }))
+          })),
         );
       } else {
         setSubtitles([]);
@@ -214,7 +226,7 @@ export const useVideoEditor = () => {
         setDuration(video.duration);
       };
     },
-    [subtitlePosition, subtitleStyle]
+    [subtitlePosition, subtitleStyle],
   );
 
   const handleDragEnter = useCallback((e: DragEvent) => {
@@ -261,7 +273,7 @@ export const useVideoEditor = () => {
       extractVideoFrames(file);
       await uploadFile(file);
     },
-    []
+    [],
   );
 
   const handleRemoveVideo = () => {
@@ -272,10 +284,75 @@ export const useVideoEditor = () => {
     setDuration(0);
     setIsPlaying(false);
     setProcessingState({ status: "idle", message: "", progress: 0 });
+    setSeparationState({ status: "idle", message: "", progress: 0 });
+    setHasSeparatedAudio(false);
     setActiveSessionId(null);
   };
 
-  const handleGenerateSubtitles = async () => {
+  const handleSeparateVocals = async () => {
+    if (!videoPath || separationState.status === "processing") return;
+
+    setSeparationState({
+      status: "processing",
+      message: "ボーカル分離を開始中...",
+      progress: 0,
+    });
+
+    try {
+      const response = await fetch("/api/demucs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoPath: videoPath.replace(/^\//, "") }),
+      });
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const jsonStr = line.replace("data: ", "");
+            try {
+              const data = JSON.parse(jsonStr);
+              setSeparationState({
+                status:
+                  data.stage === "done"
+                    ? "done"
+                    : data.stage === "error"
+                      ? "error"
+                      : "processing",
+                message: data.message,
+                progress: data.progress,
+              });
+
+              if (data.stage === "done") {
+                setHasSeparatedAudio(true);
+                await fetchSessions();
+              }
+            } catch (e) {
+              console.error("JSON Parse error", e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      setSeparationState({
+        status: "error",
+        message: "ボーカル分離に失敗しました",
+        progress: 0,
+      });
+    }
+  };
+
+  const handleGenerateSubtitles = async (useVocalsOnly = false) => {
     if (!videoPath || processingState.status === "processing") return;
 
     setProcessingState({
@@ -288,7 +365,12 @@ export const useVideoEditor = () => {
       const response = await fetch("/api/whisper", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoPath: videoPath.replace(/^\//, "") }),
+        body: JSON.stringify({
+          videoPath: videoPath.replace(/^\//, ""),
+          // 呼び出し元が true を指定したら、ステートの更新待ちを気にせず true を送る。
+          // サーバー側でファイル存在確認があるため安全。
+          useVocalsOnly: useVocalsOnly,
+        }),
       });
 
       if (!response.body) throw new Error("No response body");
@@ -313,8 +395,8 @@ export const useVideoEditor = () => {
                   data.stage === "done"
                     ? "done"
                     : data.stage === "error"
-                    ? "error"
-                    : "processing",
+                      ? "error"
+                      : "processing",
                 message: data.message,
                 progress: data.progress,
               });
@@ -330,7 +412,7 @@ export const useVideoEditor = () => {
                     ...s,
                     ...subtitlePosition,
                     ...subtitleStyle,
-                  }))
+                  })),
                 );
               }
             } catch (e) {
@@ -367,7 +449,7 @@ export const useVideoEditor = () => {
         return next;
       });
     },
-    []
+    [],
   );
 
   const updateSubtitles = useCallback((newSubtitles: Subtitle[]) => {
@@ -416,7 +498,7 @@ export const useVideoEditor = () => {
     async (sessionId: string) => {
       if (
         !confirm(
-          "本当にこのプロジェクトを削除しますか？\nこの操作は取り消せません。"
+          "本当にこのプロジェクトを削除しますか？\nこの操作は取り消せません。",
         )
       ) {
         return;
@@ -442,7 +524,7 @@ export const useVideoEditor = () => {
         alert("プロジェクトの削除に失敗しました");
       }
     },
-    [activeSessionId, fetchSessions]
+    [activeSessionId, fetchSessions],
   );
 
   return {
@@ -473,6 +555,9 @@ export const useVideoEditor = () => {
     handleFileSelect,
     handleRemoveVideo,
     handleGenerateSubtitles,
+    handleSeparateVocals,
+    separationState,
+    hasSeparatedAudio,
     subtitlePosition,
     updateSubtitlesPosition,
     subtitleStyle,

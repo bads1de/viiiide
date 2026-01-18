@@ -43,6 +43,9 @@ export default function Home() {
     isLibraryLoading,
     loadSession,
     deleteSession,
+    handleSeparateVocals,
+    separationState,
+    hasSeparatedAudio,
   } = useVideoEditor();
 
   return (
@@ -59,8 +62,11 @@ export default function Home() {
         videoPath={videoPath}
         videoFileName={videoFileName}
         processingState={processingState}
+        separationState={separationState}
+        hasSeparatedAudio={hasSeparatedAudio}
         onRemoveVideo={handleRemoveVideo}
         onGenerateSubtitles={handleGenerateSubtitles}
+        onSeparateVocals={handleSeparateVocals}
         subtitles={subtitles}
         onSubtitlesUpdate={updateSubtitles}
         subtitleStyle={subtitleStyle}

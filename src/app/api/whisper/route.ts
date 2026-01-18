@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { videoPath } = body;
+  const { videoPath, useVocalsOnly = false } = body;
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -30,6 +30,23 @@ export async function POST(request: Request) {
         if (!existsSync(inputVideo))
           throw new Error(`Video not found at ${inputVideo}`);
 
+        // Check for vocals-only mode
+        let audioSource = inputVideo;
+        if (useVocalsOnly) {
+          const sessionDir = path.dirname(inputVideo);
+          const vocalsPath = path.join(sessionDir, "vocals.wav");
+          if (existsSync(vocalsPath)) {
+            audioSource = vocalsPath;
+            sendUpdate("starting", "ボーカルトラックを使用して解析します", 5);
+          } else {
+            sendUpdate(
+              "starting",
+              "ボーカルトラックが見つからないため、元の音声を使用します",
+              5,
+            );
+          }
+        }
+
         if (!existsSync(WHISPER_BIN))
           throw new Error("Whisper binary missing. Please re-install.");
         if (!existsSync(WHISPER_MODEL_PATH))
@@ -44,8 +61,8 @@ export async function POST(request: Request) {
 
         try {
           execSync(
-            `ffmpeg -i "${inputVideo}" -ar 16000 -ac 1 -c:a pcm_s16le "${tempWav}" -y`,
-            { stdio: "ignore" }
+            `ffmpeg -i "${audioSource}" -ar 16000 -ac 1 -c:a pcm_s16le "${tempWav}" -y`,
+            { stdio: "ignore" },
           );
         } catch (e: any) {
           throw new Error("FFmpeg加工に失敗しました");
@@ -103,7 +120,7 @@ export async function POST(request: Request) {
         const sessionJsonPath = path.join(sessionDir, "session.json");
         if (existsSync(sessionJsonPath)) {
           const sessionData = JSON.parse(
-            readFileSync(sessionJsonPath, "utf-8")
+            readFileSync(sessionJsonPath, "utf-8"),
           );
           sessionData.subtitlePath = videoPath.replace(/\.[^.]+$/, ".json");
           sessionData.hasSubtitles = true;
