@@ -12,4 +12,5 @@ export type Subtitle = {
   fontFamily?: string;
   animation?: AnimationType;
   presetId?: string;
+  layoutId?: string;
 };

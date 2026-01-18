@@ -43,9 +43,8 @@ export default function Home() {
     isLibraryLoading,
     loadSession,
     deleteSession,
-    handleSeparateVocals,
-    separationState,
-    hasSeparatedAudio,
+    layoutId,
+    setLayoutId,
   } = useVideoEditor();
 
   return (
@@ -62,15 +61,14 @@ export default function Home() {
         videoPath={videoPath}
         videoFileName={videoFileName}
         processingState={processingState}
-        separationState={separationState}
-        hasSeparatedAudio={hasSeparatedAudio}
         onRemoveVideo={handleRemoveVideo}
         onGenerateSubtitles={handleGenerateSubtitles}
-        onSeparateVocals={handleSeparateVocals}
         subtitles={subtitles}
         onSubtitlesUpdate={updateSubtitles}
         subtitleStyle={subtitleStyle}
         onStyleChange={updateSubtitleStyle}
+        layoutId={layoutId}
+        onLayoutChange={setLayoutId}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

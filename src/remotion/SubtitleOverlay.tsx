@@ -13,6 +13,7 @@ import {
 } from "@/utils/animations";
 import { useEffect, useMemo } from "react";
 import { getPresetById } from "@/config/stylePresets";
+import { getLayoutById } from "@/config/layoutPresets";
 
 // 共通のスタイル型
 type TokenStyle = {
@@ -38,6 +39,12 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
     const presetId = subtitleData.presetId;
     return presetId ? getPresetById(presetId) : null;
   }, [subtitleData]);
+
+  // レイアウトを取得
+  const layout = useMemo(() => {
+    const layoutId = subtitleData.layoutId || "horizontal";
+    return getLayoutById(layoutId);
+  }, [subtitleData.layoutId]);
 
   // ベース/アクティブスタイルを決定
   // ユーザー設定（subtitleData）を優先し、フォールバックとしてプリセット値を使用
@@ -69,7 +76,7 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   const currentPage = useMemo(() => {
     return pages.find(
       (page) =>
-        timeInMs >= page.startMs && timeInMs < page.startMs + page.durationMs
+        timeInMs >= page.startMs && timeInMs < page.startMs + page.durationMs,
     );
   }, [pages, timeInMs]);
 
@@ -93,7 +100,7 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
   // アニメーション計算
   const startFrame = Math.floor((currentPage.startMs / 1000) * fps);
   const endFrame = Math.floor(
-    ((currentPage.startMs + currentPage.durationMs) / 1000) * fps
+    ((currentPage.startMs + currentPage.durationMs) / 1000) * fps,
   );
 
   const animationValues = calculateAnimation({
@@ -151,9 +158,12 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
         <div
           style={{
             display: "inline-flex",
-            flexWrap: "wrap",
+            flexDirection: layout?.direction === "vertical" ? "column" : "row",
+            flexWrap: layout?.direction === "vertical" ? "nowrap" : "wrap",
             justifyContent: "center",
-            gap: "8px",
+            alignItems:
+              layout?.direction === "vertical" ? "center" : "flex-start",
+            gap: layout?.direction === "vertical" ? "12px" : "8px",
             transform: `translateX(${subtitleData.x || 0}px)`,
           }}
         >
@@ -177,7 +187,7 @@ export const SubtitleOverlay = ({ subtitles }: { subtitles: Subtitle[] }) => {
                   timeSinceStart,
                   [0, 150, 250],
                   [0, 1.3, 1.1],
-                  { extrapolateRight: "clamp" }
+                  { extrapolateRight: "clamp" },
                 );
                 currentStyle = activeStyle;
                 tokenTextShadow = `${createStroke(activeStyle.strokeColor)}${

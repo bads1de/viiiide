@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     if (!videoPath) {
       return NextResponse.json(
         { error: "Video path is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     if (!existsSync(absoluteVideoPath)) {
       return NextResponse.json(
         { error: `Video file not found at ${absoluteVideoPath}` },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -39,8 +39,19 @@ export async function POST(request: Request) {
     console.log("Bundling Remotion project...");
     const bundleLocation = await bundle({
       entryPoint,
-      // You can cache the bundle to speed up subsequent renders
-      // onWebpackConfig: (c) => c,
+      // Configure webpack to resolve path aliases from tsconfig.json
+      webpackOverride: (config) => {
+        return {
+          ...config,
+          resolve: {
+            ...config.resolve,
+            alias: {
+              ...config.resolve?.alias,
+              "@": path.join(projectRoot, "src"),
+            },
+          },
+        };
+      },
     });
 
     console.log("Bundle created at:", bundleLocation);
@@ -104,7 +115,7 @@ export async function POST(request: Request) {
         details: error.message,
         code: error.code,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
