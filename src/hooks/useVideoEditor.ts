@@ -356,9 +356,45 @@ export const useVideoEditor = () => {
     }
   };
 
+  const saveSubtitlesToSession = useCallback(
+    async (subtitlesToSave: Subtitle[]) => {
+      if (!activeSessionId) return;
+
+      try {
+        await fetch(`/api/sessions/${activeSessionId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            subtitles: subtitlesToSave,
+          }),
+        });
+        console.log("Subtitles saved to session");
+      } catch (error) {
+        console.error("Failed to save subtitles:", error);
+      }
+    },
+    [activeSessionId],
+  );
+
+  // 自動保存（デバウンス処理）
+  useEffect(() => {
+    if (!activeSessionId || !videoPath) return;
+
+    const timeoutId = setTimeout(() => {
+      saveSubtitlesToSession(subtitles);
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [subtitles, activeSessionId, videoPath, saveSubtitlesToSession]);
+
   const updateSubtitlesPosition = useCallback((x: number, y: number) => {
     setSubtitlePosition({ x, y });
-    setSubtitles((prev) => prev.map((s) => ({ ...s, x, y })));
+    setSubtitles((prev) => {
+      const updated = prev.map((s) => ({ ...s, x, y }));
+      return updated;
+    });
   }, []);
 
   const updateSubtitleStyle = useCallback(
